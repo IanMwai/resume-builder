@@ -54,26 +54,34 @@ const AppMain = () => {
     setSuccessMessage('');
     setOriginalLatexInput(latexInput); // Store original for comparison
 
-    try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `Given the following LaTeX resume and job description, please rewrite the resume to better match the job description. Do not add any new information, only rephrase and reorder existing information. Preserve the LaTeX format.
-      
-      After rewriting, provide a JSON object with two keys:
-      1. "rewritten_resume": The full rewritten LaTeX resume.
-      2. "analysis": An object containing:
-         - "summary_of_changes": A detailed summary of modifications, including:
-           - "added_sections": [] (array of objects, each with 'item' and 'description' fields)
-           - "removed_parts": [] (array of objects, each with 'item' and 'description' fields)
-           - "reworded_bullet_points": [] (array of objects, each with 'item' and 'description' fields)
-         - "match_score": A percentage (integer) representing the match between the rewritten resume and the job description, based on keyword overlap, phrase alignment, and job relevance.
+    const prompt = `You are an AI assistant tasked with helping users improve their LaTeX-formatted resumes to better match specific job descriptions.
 
-      Resume:
-      ${latexInput}
-
-      Job Description:
-      ${jobDescription}
-
-      Ensure the output is a valid JSON object.`;
+    Instructions:
+    - Rewrite the given LaTeX resume to better align with the job description.
+    - Only rephrase or reorder existing information. Do not invent or add new content.
+    - Preserve all LaTeX formatting and structure.
+    - Return your output strictly as a valid JSON object with the following format:
+    
+    {
+      "rewritten_resume": "string (LaTeX)",
+      "analysis": {
+        "summary_of_changes": {
+          "added_sections": [ { "item": "string", "description": "string" } ],
+          "removed_parts": [ { "item": "string", "description": "string" } ],
+          "reworded_bullet_points": [ { "item": "string", "description": "string" } ]
+        },
+        "match_score": integer (0–100)
+      }
+    }
+    
+    LaTeX Resume:
+    ${latexInput}
+    
+    Job Description:
+    ${jobDescription}
+    
+    Only return the JSON object, with no explanation or commentary. Ensure it is valid and parsable.
+    `;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
