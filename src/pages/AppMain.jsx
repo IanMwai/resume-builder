@@ -83,6 +83,7 @@ const AppMain = () => {
     Only return the JSON object, with no explanation or commentary. Ensure it is valid and parsable.
     `;
 
+    try {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -102,8 +103,7 @@ const AppMain = () => {
       setMatchScore(jsonResponse.analysis.match_score);
       setProcessed(true);
       setSuccessMessage('Resume processed successfully!');
-    } 
-    catch (error) {
+    } catch (error) {
       setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX and job description.');
       console.error('Error processing resume:', error);
     }
