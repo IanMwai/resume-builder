@@ -1,8 +1,8 @@
 # Resume Builder — LaTeX + AI
 
-A fun side project built to help me stop suffering through manual resume edits.
+A fun side project built to reduce the suffering manual resume edits impose on me.
 
-This application is a React-based Resume Builder designed to help users efficiently create, edit, and organize resumes — especially LaTeX-based ones. It uses Google Gemini AI to intelligently tailor resume content to job descriptions and Firebase for secure authentication and cloud storage.
+ TLDR. This is a React-based Resume Builder designed to help users efficiently create, edit, and organize resumes — especially LaTeX-based ones. It uses Google Gemini AI to intelligently tailor resume content to job descriptions and Firebase for secure authentication and cloud storage.
 
 ---
 
