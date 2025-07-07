@@ -48,8 +48,16 @@ The app constructs detailed prompts combining your LaTeX resume and pasted job d
 
 ---
 
-## Project Structure
 
+
+## Setup Instructions
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/IanMwai/resume-builder.git
+   cd resume-builder
+
+## Project Structure
 ```bash
 resume-builder/
 ├── public/
@@ -63,5 +71,4 @@ resume-builder/
 ├── postcss.config.js
 └── package.json
 
-git clone https://github.com/IanMwai/resume-builder.git
-cd resume-builder
+
