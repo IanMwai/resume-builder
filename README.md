@@ -38,7 +38,7 @@ A fun side project built to reduce the suffering manual resume edits impose on m
 | Auth & Storage  | Firebase Auth + Firestore     |
 | PDF Generation  | (Planned) Node backend w/ `latex` |
 | Build Tool      | Create React App              |
-| Hosting         | TBD (e.g., Vercel, Render)    |
+| Hosting         | Firebase    |
 
 ---
 
