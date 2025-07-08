@@ -49,7 +49,7 @@ const AppMain = () => {
     setProcessing(true);
     setError('');
     setSuccessMessage('');
-    setOriginalLatexInput(latexInput); // Store original for comparison
+    
 
     try {
       const response = await fetch(
