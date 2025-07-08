@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc } from 'firebase/firestore';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import toast, { Toaster } from 'react-hot-toast';
 
 const AppMain = () => {
@@ -18,8 +17,6 @@ const AppMain = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [resumeTitle, setResumeTitle] = useState('');
-
-  const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -54,50 +51,24 @@ const AppMain = () => {
     setSuccessMessage('');
     setOriginalLatexInput(latexInput); // Store original for comparison
 
-    const prompt = `You are an AI assistant tasked with helping users improve their LaTeX-formatted resumes to better match specific job descriptions.
-
-    Instructions:
-    - Rewrite the given LaTeX resume to better align with the job description.
-    - Only rephrase or reorder existing information. Do not invent or add new content.
-    - Preserve all LaTeX formatting and structure.
-    - Return your output strictly as a valid JSON object with the following format:
-    
-    {
-      "rewritten_resume": "string (LaTeX)",
-      "analysis": {
-        "summary_of_changes": {
-          "added_sections": [ { "item": "string", "description": "string" } ],
-          "removed_parts": [ { "item": "string", "description": "string" } ],
-          "reworded_bullet_points": [ { "item": "string", "description": "string" } ]
-        },
-        "match_score": integer (0–100)
-      }
-    }
-    
-    LaTeX Resume:
-    ${latexInput}
-    
-    Job Description:
-    ${jobDescription}
-    
-    Only return the JSON object, with no explanation or commentary. Ensure it is valid and parsable.
-    `;
-
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = await response.text();
+      const response = await fetch(
+        "https://us-central1-<YOUR_FIREBASE_PROJECT_ID>.cloudfunctions.net/processResumeWithGemini",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ latexInput, jobDescription }),
+        }
+      );
 
-      // Extract JSON from markdown code block
-      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-      let jsonResponse;
-      if (jsonMatch && jsonMatch[1]) {
-        jsonResponse = JSON.parse(jsonMatch[1]);
-      } else {
-        // If no markdown block, try to parse as-is (for development or unexpected formats)
-        jsonResponse = JSON.parse(text);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const jsonResponse = await response.json();
+
       setLatexInput(jsonResponse.rewritten_resume);
       setSummary(jsonResponse.analysis.summary_of_changes);
       setMatchScore(jsonResponse.analysis.match_score);
@@ -124,6 +95,68 @@ const AppMain = () => {
       URL.revokeObjectURL(url);
       setSuccessMessage('Resume downloaded successfully! Use a LaTeX compiler like Overleaf to generate a PDF from your .tex file.');
     }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!latexInput) {
+      setError("Please provide LaTeX input to generate a PDF.");
+      return;
+    }
+
+    setProcessing(true);
+    setError('');
+    setSuccessMessage('');
+
+    // Basic HTML structure for the resume - this should ideally be more robust
+    // and handle LaTeX to HTML conversion properly. For now, a simple wrapper.
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Resume</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          pre { white-space: pre-wrap; word-wrap: break-word; }
+        </style>
+      </head>
+      <body>
+        <pre>${latexInput}</pre>
+      </body>
+      </html>
+    `;
+
+    try {
+      const response = await fetch(
+        "https://us-central1-resume-builder-ian.cloudfunctions.net/generateResumePdf",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ htmlContent }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      setSuccessMessage('Success! Your PDF has been downloaded!');
+    } catch (error) {
+      setError('Error generating PDF. Please try again.');
+      console.error('Error generating PDF:', error);
+    }
+
+    setProcessing(false);
   };
 
   const handleSaveResume = async () => {
@@ -155,7 +188,7 @@ const AppMain = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="bg-white rounded-lg shadow-md">
       <Toaster />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -209,6 +242,13 @@ const AppMain = () => {
           className="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition duration-200 text-lg font-poppins font-semibold"
         >
           Download .tex
+        </button>
+        <button
+          onClick={handleDownloadPdf}
+          disabled={processing}
+          className="flex-1 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-poppins font-semibold"
+        >
+          Download PDF
         </button>
       </div>
       {processing && (

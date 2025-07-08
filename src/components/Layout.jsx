@@ -31,7 +31,7 @@ const Layout = ({ children }) => {
       <Navbar />
       {user && userData && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 mt-4 bg-rose-50 rounded-lg shadow-md">
-          <h2 className="text-lg font-poppins text-gray-800">
+          <h2 className="text-lg font-poppins text-gray-800 text-center">
             {`${(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}! Haven’t landed the job yet? Let’s fix that; your resume glow-up starts now!`}
           </h2>
         </div>

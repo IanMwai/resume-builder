@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import toast, { Toaster } from 'react-hot-toast';
 
 const Resumes = () => {
   const [user, setUser] = useState(null);
@@ -56,8 +57,66 @@ const Resumes = () => {
     }
   };
 
+  const handleDownloadPdf = async (latexContent, title) => {
+    if (!latexContent) {
+      setError("Resume content is empty. Cannot generate PDF.");
+      return;
+    }
+
+    setError('');
+    setSuccessMessage('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title || 'Resume'}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          pre { white-space: pre-wrap; word-wrap: break-word; }
+        </style>
+      </head>
+      <body>
+        <pre>${latexContent}</pre>
+      </body>
+      </html>
+    `;
+
+    try {
+      const response = await fetch(
+        "https://us-central1-resume-builder-ian.cloudfunctions.net/generateResumePdf",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ htmlContent }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title || 'resume'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Success! Your PDF has been downloaded!');
+    } catch (error) {
+      setError('Error generating PDF. Please try again.');
+      console.error('Error generating PDF:', error);
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
+      <Toaster />
       {error && <p className="text-red-500 text-center mb-4 font-inter">{error}</p>}
       {successMessage && <p className="text-green-500 text-center mb-4 font-inter">{successMessage}</p>}
       <h2 className="text-2xl font-poppins font-bold mb-6">Saved Resumes</h2>
@@ -72,6 +131,12 @@ const Resumes = () => {
                   className="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition duration-200 font-poppins"
                 >
                   Download .tex
+                </button>
+                <button
+                  onClick={() => handleDownloadPdf(resume.latex, resume.title)}
+                  className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200 font-poppins"
+                >
+                  Download PDF
                 </button>
                 <button
                   onClick={() => handleDeleteResume(resume.id)}
