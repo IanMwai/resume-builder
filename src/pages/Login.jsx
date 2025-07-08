@@ -33,7 +33,7 @@ const Login = () => {
   };
 
   return (
-    <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
+    <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg mx-auto">
       <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Log In</h2>
       {error && <p className="text-red-500 text-center mb-4">{error}</p>}
       {successMessage && <p className="text-green-500 text-center mb-4">{successMessage}</p>}

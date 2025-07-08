@@ -10,7 +10,7 @@ import Layout from './components/Layout';
 
 const App = () => {
   return (
-    <div className="min-h-screen bg-neutral-bg font-sans text-neutral-text-primary">
+    <div className="min-h-screen bg-neutral-bg font-sans text-neutral-text-primary flex items-center justify-center">
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
