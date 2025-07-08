@@ -53,7 +53,7 @@ const AppMain = () => {
 
     try {
       const response = await fetch(
-        "https://us-central1-<YOUR_FIREBASE_PROJECT_ID>.cloudfunctions.net/processResumeWithGemini",
+        "https://us-central1-resume-builder-ian.cloudfunctions.net/processResumeWithGemini",
         {
           method: "POST",
           headers: {
