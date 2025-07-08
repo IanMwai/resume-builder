@@ -49,8 +49,11 @@ const Signup = () => {
         setError('This email is already in use. Please try logging in or use a different email.');
       } else if (error.code === 'auth/weak-password') {
         setError('Password is too weak. Please use a stronger password (at least 6 characters).');
+      } else if (error.code === 'auth/invalid-email') {
+        setError('Invalid email address format.');
       } else {
-        setError(error.message);
+        setError('An unexpected error occurred. Please try again.');
+        console.error('Signup error:', error);
       }
     }
   };

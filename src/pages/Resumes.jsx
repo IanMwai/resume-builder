@@ -14,10 +14,15 @@ const Resumes = () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        const resumesRef = collection(db, 'users', currentUser.uid, 'resumes');
-        const querySnapshot = await getDocs(resumesRef);
-        const savedResumes = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setResumes(savedResumes);
+        try {
+          const resumesRef = collection(db, 'users', currentUser.uid, 'resumes');
+          const querySnapshot = await getDocs(resumesRef);
+          const savedResumes = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          setResumes(savedResumes);
+        } catch (error) {
+          console.error('Error fetching resumes:', error);
+          setError('Failed to load resumes. Please try again.');
+        }
       } else {
         setUser(null);
         setResumes([]);

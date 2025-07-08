@@ -16,14 +16,19 @@ const Account = () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        const docRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setUserData(data);
-          setFirstName(data.firstName);
-          setLastName(data.lastName);
-          setPreferredName(data.preferredName);
+        try {
+          const docRef = doc(db, 'users', currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setUserData(data);
+            setFirstName(data.firstName);
+            setLastName(data.lastName);
+            setPreferredName(data.preferredName);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          setError('Failed to load account information. Please try again.');
         }
       } else {
         setUser(null);

@@ -22,7 +22,8 @@ const ForgotPassword = () => {
       } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
       } else {
-        setError(error.message);
+        setError('An unexpected error occurred. Please try again.');
+        console.error('Password reset error:', error);
       }
     }
   };

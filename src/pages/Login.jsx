@@ -26,7 +26,10 @@ const Login = () => {
         setError('Invalid email or password. Please try again.');
       } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
-      } else {
+      } else if (error.code === 'auth/invalid-credential') {
+        setError('Invalid email or password. Please try again.');
+      }
+      else {
         setError(error.message);
       }
     }
