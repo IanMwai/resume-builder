@@ -6,13 +6,20 @@ import toast, { Toaster } from 'react-hot-toast';
 
 const AppMain = () => {
   const [user, setUser] = useState(null);
-  const [latexInput, setLatexInput] = useState('');
-  
-  const [summary, setSummary] = useState(null);
-  const [matchScore, setMatchScore] = useState(null);
-  const [jobDescription, setJobDescription] = useState('');
+  const [latexInput, setLatexInput] = useState(() => localStorage.getItem('latexInput') || '');
+  const [summary, setSummary] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('summary')) || null;
+    } catch (e) {
+      console.error("Error parsing summary from sessionStorage", e);
+      return null;
+    }
+  });
+  const [matchScore, setMatchScore] = useState(() => sessionStorage.getItem('matchScore') || null);
+  const [matchScoreExplanation, setMatchScoreExplanation] = useState(() => sessionStorage.getItem('matchScoreExplanation') || '');
+  const [jobDescription, setJobDescription] = useState(() => localStorage.getItem('jobDescription') || '');
   const [processing, setProcessing] = useState(false);
-  const [processed, setProcessed] = useState(false);
+  const [processed, setProcessed] = useState(() => sessionStorage.getItem('processed') === 'true');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -25,6 +32,32 @@ const AppMain = () => {
     return () => unsubscribe();
   }, []);
 
+  // Persist latexInput and jobDescription to localStorage
+  useEffect(() => {
+    localStorage.setItem('latexInput', latexInput);
+  }, [latexInput]);
+
+  useEffect(() => {
+    localStorage.setItem('jobDescription', jobDescription);
+  }, [jobDescription]);
+
+  // Persist processing results to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('summary', JSON.stringify(summary));
+  }, [summary]);
+
+  useEffect(() => {
+    sessionStorage.setItem('matchScore', matchScore);
+  }, [matchScore]);
+
+  useEffect(() => {
+    sessionStorage.setItem('matchScoreExplanation', matchScoreExplanation);
+  }, [matchScoreExplanation]);
+
+  useEffect(() => {
+    sessionStorage.setItem('processed', processed);
+  }, [processed]);
+
   useEffect(() => {
     if (processed) {
       toast.success('AI Analysis Ready!', {
@@ -33,6 +66,24 @@ const AppMain = () => {
       });
     }
   }, [processed]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError('');
+      }, 5000); // Clear error after 5 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000); // Clear success message after 5 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -49,7 +100,6 @@ const AppMain = () => {
     setProcessing(true);
     setError('');
     setSuccessMessage('');
-    
 
     try {
       const response = await fetch(
@@ -64,7 +114,8 @@ const AppMain = () => {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const jsonResponse = await response.json();
@@ -72,10 +123,11 @@ const AppMain = () => {
       setLatexInput(jsonResponse.rewritten_resume);
       setSummary(jsonResponse.analysis.summary_of_changes);
       setMatchScore(jsonResponse.analysis.match_score);
+      setMatchScoreExplanation(jsonResponse.analysis.match_score_explanation);
       setProcessed(true);
       setSuccessMessage('Resume processed successfully!');
     } catch (error) {
-      setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX and job description.');
+      setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX  and you have added a job description.');
       console.error('Error processing resume:', error);
     }
 
@@ -97,67 +149,7 @@ const AppMain = () => {
     }
   };
 
-  const handleDownloadPdf = async () => {
-    if (!latexInput) {
-      setError("Please provide LaTeX input to generate a PDF.");
-      return;
-    }
-
-    setProcessing(true);
-    setError('');
-    setSuccessMessage('');
-
-    // Basic HTML structure for the resume - this should ideally be more robust
-    // and handle LaTeX to HTML conversion properly. For now, a simple wrapper.
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Resume</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          pre { white-space: pre-wrap; word-wrap: break-word; }
-        </style>
-      </head>
-      <body>
-        <pre>${latexInput}</pre>
-      </body>
-      </html>
-    `;
-
-    try {
-      const response = await fetch(
-        "https://us-central1-resume-builder-ian.cloudfunctions.net/generateResumePdf",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ htmlContent }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'resume.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      setSuccessMessage('Success! Your PDF has been downloaded!');
-    } catch (error) {
-      setError('Error generating PDF. Please try again.');
-      console.error('Error generating PDF:', error);
-    }
-
-    setProcessing(false);
-  };
+  
 
   const handleSaveResume = async () => {
     if (!user) {
@@ -188,18 +180,20 @@ const AppMain = () => {
   };
 
   return (
-    <div className="max-w-[90vw] mx-auto py-8 px-4 sm:px-6 lg:px-8"> {/* Added outer container for width and padding */}
-      {/* Placeholder for Greeting Bar - assuming it's a parent component or will be added here */}
-      {/* <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user ? user.displayName || user.email : 'Guest'}!</h1>
-        <p className="mt-2 text-lg text-gray-600">Let's build your perfect resume.</p>
-      </div> */}
-
-      <div className="bg-white rounded-lg shadow-xl p-6"> {/* Increased shadow and added padding */}
+    <div className="w-full">
+      <div className="bg-white rounded-lg shadow-xl p-6">
         <Toaster />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-lg font-poppins font-semibold leading-6 text-gray-900 mb-2">Resume (.tex)</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-poppins font-semibold leading-6 text-gray-900">Resume (.tex)</h3>
+              <button
+                onClick={() => setLatexInput('')}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Clear
+              </button>
+            </div>
             <div className="mt-2">
               <textarea
                 rows="12"
@@ -222,7 +216,15 @@ const AppMain = () => {
             </div>
           </div>
           <div>
-            <h3 className="text-lg font-poppins font-semibold leading-6 text-gray-900 mb-2">Job Description</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-poppins font-semibold leading-6 text-gray-900">Job Description</h3>
+              <button
+                onClick={() => setJobDescription('')}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Clear
+              </button>
+            </div>
             <div className="mt-2">
               <textarea
                 rows="12"
@@ -239,32 +241,27 @@ const AppMain = () => {
         <div className="mt-6 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
           <button
             onClick={handleProcessResume}
-            disabled={processing}
+            disabled={processing || !latexInput || !jobDescription}
             className="flex-1 bg-crimson-light text-white py-3 rounded-lg hover:bg-crimson-dark transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-poppins font-semibold"
           >
             {processing ? 'Processing...' : 'Process Resume (AI)'}
           </button>
           <button
             onClick={() => handleDownload('tex')}
-            className="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition duration-200 text-lg font-poppins font-semibold"
+            disabled={!processed}
+            className="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-poppins font-semibold"
           >
             Download .tex
           </button>
-          <button
-            onClick={handleDownloadPdf}
-            disabled={processing}
-            className="flex-1 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-poppins font-semibold"
-          >
-            Download PDF
-          </button>
+          
         </div>
         {processing && (
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4">
-            <div className="bg-crimson-light h-2.5 rounded-full w-1/2 animate-pulse"></div>
+          <div className="w-full bg-crimson-light rounded-full h-2.5 mt-4 overflow-hidden">
+            <div className="h-full bg-crimson-dark animate-pulse-indeterminate"></div>
           </div>
         )}
-        {error && <p className="text-red-500 text-center mt-4">{error}</p>}
-        {successMessage && <p className="text-green-500 text-center mt-4">{successMessage}</p>}
+        {error && <p className="text-red-500 text-center mt-4 transition-opacity duration-500">{error}</p>}
+        {successMessage && <p className="text-green-500 text-center mt-4 transition-opacity duration-500">{successMessage}</p>}
 
         {processed && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg shadow-inner">
@@ -282,6 +279,9 @@ const AppMain = () => {
                     style={{ width: `${matchScore}%` }}
                   ></div>
                 </div>
+                {matchScoreExplanation && (
+                  <p className="text-sm text-gray-600 mt-2">{matchScoreExplanation}</p>
+                )}
               </div>
             )}
 
@@ -292,45 +292,40 @@ const AppMain = () => {
                   <span className="transition-transform duration-200 group-open:rotate-90">▶</span>
                 </summary>
                 <div className="mt-3 text-gray-600 text-sm font-inter">
-                  {summary.added_sections && summary.added_sections.length > 0 && (
+                  {summary.enhanced_parts && summary.enhanced_parts.length > 0 ? (
                     <div className="mb-2">
-                      <p className="font-semibold text-green-700">Added Sections:</p>
+                      <p className="font-semibold text-green-700">Enhanced/Edited Parts:</p>
                       <ul className="list-disc list-inside ml-4">
-                        {summary.added_sections.map((change, index) => (
+                        {summary.enhanced_parts.map((change, index) => (
                           <li key={index}>
-                            <span className="font-medium">{change.item}</span>: {change.description}
+                            <span className="font-medium">{change.item}</span>: {change.description} (Reason: {change.reason})
                           </li>
                         ))}
                       </ul>
                     </div>
+                  ) : (
+                    <div className="mb-2">
+                      <p className="font-semibold text-green-700">No parts enhanced/edited.</p>
+                    </div>
                   )}
-                  {summary.removed_parts && summary.removed_parts.length > 0 && (
+                  {summary.removed_parts && summary.removed_parts.length > 0 ? (
                     <div className="mb-2">
                       <p className="font-semibold text-red-700">Removed Parts:</p>
                       <ul className="list-disc list-inside ml-4">
                         {summary.removed_parts.map((change, index) => (
                           <li key={index}>
-                            <span className="font-medium">{change.item}</span>: {change.description}
+                            <span className="font-medium">{change.item}</span>: {change.description} (Reason: {change.reason})
                           </li>
                         ))}
                       </ul>
                     </div>
-                  )}
-                  {summary.reworded_bullet_points && summary.reworded_bullet_points.length > 0 && (
+                  ) : (
                     <div className="mb-2">
-                      <p className="font-semibold text-blue-700">Reworded Bullet Points:</p>
-                      <ul className="list-disc list-inside ml-4">
-                        {summary.reworded_bullet_points.map((change, index) => (
-                          <li key={index}>
-                            <span className="font-medium">{change.item}</span>: {change.description}
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="font-semibold text-red-700">No parts removed.</p>
                     </div>
                   )}
-                  {(!summary.added_sections || summary.added_sections.length === 0) &&
-                   (!summary.removed_parts || summary.removed_parts.length === 0) &&
-                   (!summary.reworded_bullet_points || summary.reworded_bullet_points.length === 0) && (
+                  {(!summary.enhanced_parts || summary.enhanced_parts.length === 0) &&
+                   (!summary.removed_parts || summary.removed_parts.length === 0) && (
                     <p>No significant structural changes detected, primarily rephrasing.</p>
                   )}
                 </div>

@@ -11,6 +11,24 @@ const Resumes = () => {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError('');
+      }, 5000); // Clear error after 5 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000); // Clear success message after 5 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
@@ -62,90 +80,29 @@ const Resumes = () => {
     }
   };
 
-  const handleDownloadPdf = async (latexContent, title) => {
-    if (!latexContent) {
-      setError("Resume content is empty. Cannot generate PDF.");
-      return;
-    }
-
-    setError('');
-    setSuccessMessage('');
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${title || 'Resume'}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          pre { white-space: pre-wrap; word-wrap: break-word; }
-        </style>
-      </head>
-      <body>
-        <pre>${latexContent}</pre>
-      </body>
-      </html>
-    `;
-
-    try {
-      const response = await fetch(
-        "https://us-central1-resume-builder-ian.cloudfunctions.net/generateResumePdf",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ htmlContent }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title || 'resume'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      toast.success('Success! Your PDF has been downloaded!');
-    } catch (error) {
-      setError('Error generating PDF. Please try again.');
-      console.error('Error generating PDF:', error);
-    }
-  };
+  
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <Toaster />
-      {error && <p className="text-red-500 text-center mb-4 font-inter">{error}</p>}
-      {successMessage && <p className="text-green-500 text-center mb-4 font-inter">{successMessage}</p>}
+      {error && <p className="text-red-500 text-center mb-4 font-inter transition-opacity duration-500">{error}</p>}
+      {successMessage && <p className="text-green-500 text-center mb-4 font-inter transition-opacity duration-500">{successMessage}</p>}
       <h2 className="text-2xl font-poppins font-bold mb-6">Saved Resumes</h2>
       {resumes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {resumes.map((resume) => (
-            <div key={resume.id} className="bg-gray-50 p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-poppins font-medium leading-6 text-gray-900">{resume.title || 'Untitled Resume'}</h3>
-              <div className="mt-4 flex justify-end space-x-4">
+            <div key={resume.id} className="bg-gray-50 p-6 rounded-lg shadow-lg flex flex-col justify-between">
+              <h3 className="text-lg text-gray-800 font-semibold mb-4">{resume.title || 'Untitled Resume'}</h3>
+              <div className="flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-auto">
                 <button
                   onClick={() => handleDownload(resume.latex, resume.title, 'tex')}
-                  className="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition duration-200 font-poppins"
+                  className="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 text-sm font-poppins"
                 >
                   Download .tex
                 </button>
                 <button
-                  onClick={() => handleDownloadPdf(resume.latex, resume.title)}
-                  className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200 font-poppins"
-                >
-                  Download PDF
-                </button>
-                <button
                   onClick={() => handleDeleteResume(resume.id)}
-                  className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition duration-200 font-poppins"
+                  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition duration-200 text-sm font-poppins"
                 >
                   Delete
                 </button>

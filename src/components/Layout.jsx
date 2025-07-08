@@ -33,16 +33,23 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-200 font-sans text-neutral-text-primary">
       <Navbar />
-      {user && userData && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 mt-4 bg-rose-50 rounded-lg shadow-md">
-          <h2 className="text-lg font-poppins text-gray-800 text-center">
-            {`${(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}! Haven’t landed the job yet? Let’s fix that; your resume glow-up starts now!`}
-          </h2>
-        </div>
-      )}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {children}
-      </main>
+      <div className="w-screen mx-auto px-4 md:px-8 lg:px-12">
+        {user && userData && (
+          <div className="py-4 mt-4 bg-rose-50 rounded-lg shadow-md">
+            <h2 className="text-lg font-poppins text-gray-800 text-center">
+              {`${(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}! Haven’t landed the job yet? Let’s fix that; your resume glow-up starts now!`}
+            </h2>
+          </div>
+        )}
+        <main className="py-6">
+          {React.Children.map(children, (child) => {
+            if (React.isValidElement(child)) {
+              return React.cloneElement(child, { user, userData });
+            }
+            return child;
+          })}
+        </main>
+      </div>
     </div>
   );
 };

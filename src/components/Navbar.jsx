@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, deleteDoc } from 'firebase/firestore';
 
 const Navbar = () => {
@@ -32,11 +32,37 @@ const Navbar = () => {
     }
   };
 
+  const reauthenticateUser = async () => {
+    const email = prompt("Please enter your email to reauthenticate:");
+    const password = prompt("Please enter your password to reauthenticate:");
+
+    if (!email || !password) {
+      setError("Reauthentication cancelled or incomplete.");
+      return false;
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(email, password);
+      await reauthenticateWithCredential(user, credential);
+      return true;
+    } catch (error) {
+      setError("Reauthentication failed. Please check your email and password.");
+      console.error("Reauthentication error:", error);
+      return false;
+    }
+  };
+
   const handleDeleteAccount = async () => {
     setError('');
     setSuccessMessage('');
     if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       try {
+        // Reauthenticate user before deleting
+        const reauthenticated = await reauthenticateUser();
+        if (!reauthenticated) {
+          return;
+        }
+
         // Delete user data from Firestore
         await deleteDoc(doc(db, 'users', user.uid));
 
