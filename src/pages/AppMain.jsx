@@ -7,7 +7,7 @@ import toast, { Toaster } from 'react-hot-toast';
 const AppMain = () => {
   const [user, setUser] = useState(null);
   const [latexInput, setLatexInput] = useState('');
-  const [originalLatexInput, setOriginalLatexInput] = useState('');
+  
   const [summary, setSummary] = useState(null);
   const [matchScore, setMatchScore] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
