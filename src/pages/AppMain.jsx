@@ -203,7 +203,7 @@ const AppMain = () => {
             <div className="mt-2">
               <textarea
                 rows="12"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-crimson-light focus:outline-none resize-y overflow-auto font-inter" {/* Changed shadow-sm to shadow-md */}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-crimson-light focus:outline-none resize-y overflow-auto font-inter"
                 value={latexInput}
                 onChange={(e) => setLatexInput(e.target.value)}
                 placeholder="Paste your LaTeX code here or upload a .tex file."
@@ -226,7 +226,7 @@ const AppMain = () => {
             <div className="mt-2">
               <textarea
                 rows="12"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-crimson-light focus:outline-none resize-y overflow-auto font-inter" {/* Changed shadow-sm to shadow-md */}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-crimson-light focus:outline-none resize-y overflow-auto font-inter"
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 placeholder="Paste the job description here."
