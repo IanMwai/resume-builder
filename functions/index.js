@@ -24,7 +24,48 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       const genAI = new GoogleGenerativeAI(geminiKey);
       const model = genAI.getGenerativeModel({model: "gemini-1.5-flash"});
 
-      const prompt = `You are an AI assistant tasked with helping users improve their LaTeX-formatted resumes to better match specific job descriptions.\n\n      Instructions:\n      - Rewrite the given LaTeX resume to better align with the job description.\n      - Only rephrase or reorder existing information. Do not invent or add new content.\n      - Preserve all LaTeX formatting and structure.\n      - The match score should reflect the following weights:\n      - Technical skill overlap: 40%\n      - Educational relevance: 25%\n      - Experience alignment (e.g., labs, internships): 25%\n      - Format/tone alignment with job role: 10%\n\n      - If core technical skills, tools, or location flexibility are missing from the resume, deduct accordingly.\n      - Provide a match_score (integer 0–100) and a match_score_explanation (1–2 sentences).\n      - Return your output strictly as a valid JSON object with the following format:\n      \n      {\n        "rewritten_resume": "string (LaTeX)",\n        "analysis": {\n          "summary_of_changes": {\n            "enhanced_parts": [ { "item": "string", "description": "string", "reason": "string" } ],\n            "removed_parts": [ { "item": "string", "description": "string", "reason": "string" } ]\n          },\n          "match_score": integer (0–100),\n          "match_score_explanation": "string"\n        }\n      }\n      \n      LaTeX Resume:\n      ${latexInput}\n      \n      Job Description:\n      ${jobDescription}\n      \n      Only return the JSON object, with no explanation or commentary. Ensure it is valid and parsable.`;
+      const prompt = `You are an AI assistant tasked with helping users improve their LaTeX-formatted resumes to better match specific job descriptions.
+
+      Instructions:
+      - Update the resume to match the job description, ensuring the following:
+      - Use consistent formatting throughout.
+      - Highlight relevant keywords and skills that match the job description—both technical and soft.
+      - Use clear, concise action verbs to describe responsibilities and achievements.
+      - Maintain the original tone and voice.
+      - Prefer directly related roles, but still reflect transferable skills (e.g., leadership, initiative, adaptability) from unrelated experiences.
+      - Check for and correct any grammar or formatting issues.
+      - Limit the resume to strictly one page in 11 pt font. Prioritize relevance; shorten sentences as needed without losing key information.
+      - Only rephrase or reorder existing information. Do not invent or add new content.
+      - Preserve all LaTeX formatting and structure.
+      - The match score should reflect the following weights:
+      - Technical skill overlap: 40%
+      - Educational relevance: 25%
+      - Experience alignment (e.g., labs, internships): 25%
+      - Format/tone alignment with job role: 10%
+
+      - If core technical skills, tools, or location flexibility are missing from the resume, deduct accordingly.
+      - Provide a match_score (integer 0–100) and a match_score_explanation (1–2 sentences).
+      - Return your output strictly as a valid JSON object with the following format:
+      
+      {
+        "rewritten_resume": "string (LaTeX)",
+        "analysis": {
+          "summary_of_changes": {
+            "enhanced_parts": [ { "item": "string", "description": "string", "reason": "string" } ],
+            "removed_parts": [ { "item": "string", "description": "string", "reason": "string" } ]
+          },
+          "match_score": integer (0–100),
+          "match_score_explanation": "string"
+        }
+      }
+      
+      LaTeX Resume:
+      ${latexInput}
+      
+      Job Description:
+      ${jobDescription}
+      
+      Only return the JSON object, with no explanation or commentary. Ensure it is valid and parsable.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = await response.text();
