@@ -22,30 +22,46 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       }
 
       const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({model: "gemini-1.5-flash"});
+      const model = genAI.getGenerativeModel({model: "gemini-1.5-pro"});
 
       const prompt = `You are an AI assistant tasked with helping users improve their LaTeX-formatted resumes to better match specific job descriptions.
 
-      Instructions:
-      - Update the resume to match the job description, ensuring the following:
-      - Use consistent formatting throughout.
-      - Highlight relevant keywords and skills that match the job description—both technical and soft.
-      - Use clear, concise action verbs to describe responsibilities and achievements.
-      - Maintain the original tone and voice.
-      - Prefer directly related roles, but still reflect transferable skills (e.g., leadership, initiative, adaptability) from unrelated experiences.
-      - Check for and correct any grammar or formatting issues.
-      - Limit the resume to strictly one page in 11 pt font. Prioritize relevance; shorten sentences as needed without losing key information.
-      - Only rephrase or reorder existing information. Do not invent or add new content.
-      - Preserve all LaTeX formatting and structure.
-      - The match score should reflect the following weights:
-      - Technical skill overlap: 40%
-      - Educational relevance: 25%
-      - Experience alignment (e.g., labs, internships): 25%
-      - Format/tone alignment with job role: 10%
+      **Step 1: Initial Resume Quality Check**
+      First, assess the quality of the provided LaTeX resume.
+      - If the resume is sparse, lacks meaningful content, or is poorly structured (e.g., just a name and email), it is considered "low-quality."
+      - Otherwise, it is "high-quality."
 
+      **Step 2: Conditional Logic**
+
+      **If the resume is "low-quality":**
+      - Do NOT generate a new resume.
+      - Return a low 'match_score' (less than 40).
+      - In the 'match_score_explanation', explain that the resume is too sparse and provide specific, actionable feedback on what sections and information are missing.
+      - The 'rewritten_resume' should be the original 'latexInput'.
+      - The 'enhanced_parts' and 'removed_parts' arrays in the JSON output should be empty.
+
+      **If the resume is "high-quality":**
+      - Proceed with the original instructions to rewrite the resume.
+      - Update the resume to match the job description, ensuring the following:
+        - Use consistent formatting throughout.
+        - Highlight relevant keywords and skills that match the job description—both technical and soft.
+        - Use clear, concise action verbs to describe responsibilities and achievements.
+        - Maintain the original tone and voice.
+        - Prefer directly related roles, but still reflect transferable skills (e.g., leadership, initiative, adaptability) from unrelated experiences.
+        - Check for and correct any grammar or formatting issues.
+        - Limit the resume to strictly one page in 11 pt font. Prioritize relevance; shorten sentences as needed without losing key information.
+        - Only rephrase or reorder existing information. Do not invent or add new content.
+        - Preserve all LaTeX formatting and structure.
+      - The match score should reflect the following weights:
+        - Technical skill overlap: 40%
+        - Educational relevance: 25%
+        - Experience alignment (e.g., labs, internships): 25%
+        - Format/tone alignment with job role: 10%
       - If core technical skills, tools, or location flexibility are missing from the resume, deduct accordingly.
-      - Provide a match_score (integer 0–100) and a match_score_explanation (1–2 sentences).
-      - Return your output strictly as a valid JSON object with the following format:
+      - Provide a 'match_score' (integer 0–100) and a 'match_score_explanation' (1–2 sentences).
+
+      **Step 3: JSON Output**
+      Return your output strictly as a valid JSON object with the following format:
       
       {
         "rewritten_resume": "string (LaTeX)",
