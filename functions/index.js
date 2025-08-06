@@ -91,8 +91,8 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
 
       if (jsonMatch && jsonMatch[1]) {
         try {
-          // Sanitize the JSON string to escape unescaped backslashes from LaTeX
-          const sanitizedJsonString = jsonMatch[1].replace(/\\(?!["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\');
+          // Two-step sanitization: escape all backslashes, then fix escaped quotes.
+          const sanitizedJsonString = jsonMatch[1].replace(/\/g, '\\').replace(/\\"/g, '"');
           jsonResponse = JSON.parse(sanitizedJsonString);
         } catch (parseError) {
           console.error("Error parsing JSON from markdown block:", parseError);
@@ -101,8 +101,8 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       } else {
         // If no markdown block, try to parse as-is
         try {
-          // Sanitize the JSON string to escape unescaped backslashes from LaTeX
-          const sanitizedJsonString = text.replace(/\\(?!["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\');
+          // Two-step sanitization: escape all backslashes, then fix escaped quotes.
+          const sanitizedJsonString = text.replace(/\/g, '\\').replace(/\\"/g, '"');
           jsonResponse = JSON.parse(sanitizedJsonString);
         } catch (parseError) {
           console.error("Error parsing raw AI response as JSON:", parseError);
