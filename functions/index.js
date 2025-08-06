@@ -8,7 +8,8 @@ function parseAIOutput(text) {
   const sections = ["rewritten_resume", "analysis"];
 
   for (const section of sections) {
-    const regex = new RegExp(`<${section}>([\s\S]*?)<\/${section}>`);
+    const regex = new RegExp(`<${section}>([\s\S]*?)<
+/${section}>`);
     const match = text.match(regex);
     if (match && match[1]) {
       result[section] = match[1].trim();
@@ -22,7 +23,8 @@ function parseAIOutput(text) {
   const analysisData = {};
   const analysisSections = ["summary_of_changes", "match_score", "match_score_explanation"];
   for (const section of analysisSections) {
-    const regex = new RegExp(`<${section}>([\s\S]*?)<\/${section}>`);
+    const regex = new RegExp(`<${section}>([\s\S]*?)<
+/${section}>`);
     const match = result.analysis.match(regex);
     if (match && match[1]) {
       analysisData[section] = match[1].trim();
@@ -37,7 +39,8 @@ function parseAIOutput(text) {
     const summary = {};
     const changeTypes = ["enhanced_parts", "removed_parts"];
     for (const type of changeTypes) {
-      const regex = new RegExp(`<${type}>([\s\S]*?)<\/${type}>`);
+      const regex = new RegExp(`<${type}>([\s\S]*?)<
+/${type}>`);
       const match = analysisData.summary_of_changes.match(regex);
       if (match && match[1]) {
         summary[type] = match[1].trim().split('---').map(part => {
@@ -60,6 +63,25 @@ function parseAIOutput(text) {
     analysis: analysisData,
   };
 }
+
+// Helper function for retrying with exponential backoff
+const withRetry = async (fn, retries = 3, delay = 1000) => {
+  let lastError;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (error.message.includes("503")) {
+        console.log(`Attempt ${i + 1} failed with 503. Retrying in ${delay}ms...`);
+        await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+      } else {
+        throw error; // Re-throw non-retriable errors immediately
+      }
+    }
+  }
+  throw lastError;
+};
 
 exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
@@ -134,7 +156,9 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       Job Description:
       ${jobDescription}`;
 
-      const result = await model.generateContent(prompt);
+      const generationTask = () => model.generateContent(prompt);
+      const result = await withRetry(generationTask);
+      
       const response = await result.response;
       const text = await response.text();
 
