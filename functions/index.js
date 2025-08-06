@@ -42,29 +42,14 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
 
       **If the resume is "high-quality":**
       - Proceed with the original instructions to rewrite the resume.
-      - Update the resume to match the job description, ensuring the following:
-        - Use consistent formatting throughout.
-        - Highlight relevant keywords and skills that match the job description—both technical and soft.
-        - Use clear, concise action verbs to describe responsibilities and achievements.
-        - Maintain the original tone and voice.
-        - Prefer directly related roles, but still reflect transferable skills (e.g., leadership, initiative, adaptability) from unrelated experiences.
-        - Check for and correct any grammar or formatting issues.
-        - Limit the resume to strictly one page in 11 pt font. Prioritize relevance; shorten sentences as needed without losing key information.
-        - Only rephrase or reorder existing information. Do not invent or add new content.
-        - Preserve all LaTeX formatting and structure.
-      - The match score should reflect the following weights:
-        - Technical skill overlap: 40%
-        - Educational relevance: 25%
-        - Experience alignment (e.g., labs, internships): 25%
-        - Format/tone alignment with job role: 10%
-      - If core technical skills, tools, or location flexibility are missing from the resume, deduct accordingly.
-      - Provide a 'match_score' (integer 0–100) and a 'match_score_explanation' (1–2 sentences).
 
       **Step 3: JSON Output**
-      Return your output strictly as a valid JSON object with the following format:
-      
+      Return your output strictly as a valid JSON object.
+      CRITICAL: The 'rewritten_resume' field MUST be a valid JSON string. This means all backslashes (\) must be double-escaped (\\) and all quotation marks (") must be escaped (\"). For example, '\documentclass{article}' must become '\\documentclass{article}'.
+
+      The output format must be:
       {
-        "rewritten_resume": "string (LaTeX)",
+        "rewritten_resume": "string (JSON-escaped LaTeX)",
         "analysis": {
           "summary_of_changes": {
             "enhanced_parts": [ { "item": "string", "description": "string", "reason": "string" } ],
@@ -87,23 +72,19 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       const text = await response.text();
 
       let jsonResponse;
+      // The AI is now responsible for generating valid JSON, so we can simplify the parsing.
       const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
 
       if (jsonMatch && jsonMatch[1]) {
         try {
-          // Two-step sanitization: escape all backslashes, then fix escaped quotes.
-          const sanitizedJsonString = jsonMatch[1].replace(/\/g, '\\').replace(/\\"/g, '"');
-          jsonResponse = JSON.parse(sanitizedJsonString);
+          jsonResponse = JSON.parse(jsonMatch[1]);
         } catch (parseError) {
           console.error("Error parsing JSON from markdown block:", parseError);
           return res.status(500).send(`Error parsing AI response (markdown): ${parseError.message}`);
         }
       } else {
-        // If no markdown block, try to parse as-is
         try {
-          // Two-step sanitization: escape all backslashes, then fix escaped quotes.
-          const sanitizedJsonString = text.replace(/\/g, '\\').replace(/\\"/g, '"');
-          jsonResponse = JSON.parse(sanitizedJsonString);
+          jsonResponse = JSON.parse(text);
         } catch (parseError) {
           console.error("Error parsing raw AI response as JSON:", parseError);
           return res.status(500).send(`Error parsing AI response (raw): ${parseError.message}. Raw response: ${text.substring(0, 200)}...`);
