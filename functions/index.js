@@ -42,9 +42,13 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       3.  Finally, provide the JSON analysis object with the match score and changes.
 
       **CRITICAL OUTPUT FORMAT:**
-      Provide the raw LaTeX content first.
-      Then, on a new line, THIS EXACT SEPARATOR: ---JSON_SEPARATOR---
-      Then, on a new line, a valid JSON object for the analysis.
+      1.  Provide the raw LaTeX content first.
+      2.  Then, on a new line, THIS EXACT SEPARATOR: ---JSON_SEPARATOR---
+      3.  Then, on a new line, a JSON object for the analysis.
+
+      **CRITICAL JSON RULES:**
+      - The JSON object MUST be perfectly valid.
+      - All string values inside the JSON (like 'match_score_explanation') must have special characters properly escaped. For example, a string containing "a quote" must be written as \"a quote\".
 
       **JSON object format:**
       {
@@ -71,7 +75,7 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       const parts = text.split('---JSON_SEPARATOR---');
 
       if (parts.length !== 2) {
-        throw new Error("AI response did not contain the expected separator.");
+        throw new Error("AI response did not contain the expected separator. Raw response: " + text.substring(0, 500));
       }
 
       const rewritten_resume = parts[0].trim();
@@ -79,7 +83,6 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
 
       let analysisData;
       try {
-        // The JSON part might be in a markdown block
         const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```/);
         if (jsonMatch && jsonMatch[1]) {
           analysisData = JSON.parse(jsonMatch[1]);
@@ -87,7 +90,7 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
           analysisData = JSON.parse(jsonString);
         }
       } catch (parseError) {
-        console.error("Error parsing JSON part of AI response:", parseError);
+        console.error("Error parsing JSON part of AI response:", parseError, "\nJSON String was:", jsonString);
         return res.status(500).send(`Error parsing AI JSON response: ${parseError.message}`);
       }
 
