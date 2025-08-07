@@ -96,61 +96,62 @@ const AppMain = () => {
     }
   };
 
+  // UPDATED PARSING FUNCTION
   function parseAIOutput(text) {
     const result = {};
     const sections = ["rewritten_resume", "analysis"];
-  
+
     for (const section of sections) {
-      // Fixed: Removed unnecessary escapes from \s, \S, and \/
       const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
       const match = text.match(regex);
       if (match && match[1]) {
         result[section] = match[1].trim();
       }
     }
-  
+
     if (!result.analysis) {
       throw new Error("Missing <analysis> section in AI response");
     }
-  
+
     const analysisData = {};
     const analysisSections = ["summary_of_changes", "match_score", "match_score_explanation"];
     
     for (const section of analysisSections) {
-      // Fixed: Removed unnecessary escapes from \s, \S, and \/
       const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
       const match = result.analysis.match(regex);
       if (match && match[1]) {
         analysisData[section] = match[1].trim();
       }
     }
-  
+
     if (analysisData.match_score) {
       const score = parseInt(analysisData.match_score, 10);
       analysisData.match_score = isNaN(score) ? 0 : score;
     }
-  
+
     if (analysisData.summary_of_changes) {
       const summary = {};
       const changeTypes = ["enhanced_parts", "removed_parts"];
       
       for (const type of changeTypes) {
-        // Fixed: Removed unnecessary escapes from \s, \S, and \/
         const regex = new RegExp(`<${type}>([\\s\\S]*?)</${type}>`, 'i');
         const match = analysisData.summary_of_changes.match(regex);
         
         if (match && match[1]) {
           const parts = match[1].trim().split('---').map(part => {
-            const itemMatch = part.match(/item:\s*(.*?)(?:\n|$)/);
-            const descriptionMatch = part.match(/description:\s*(.*?)(?:\n|$)/);
-            const reasonMatch = part.match(/reason:\s*(.*?)(?:\n|$)/);
+            const trimmedPart = part.trim();
+            
+            // Improved parsing for multiline content
+            const itemMatch = trimmedPart.match(/^item:\s*(.+?)(?=\ndescription:|$)/s);
+            const descriptionMatch = trimmedPart.match(/description:\s*(.+?)(?=\nreason:|$)/s);
+            const reasonMatch = trimmedPart.match(/reason:\s*(.+?)$/s);
 
             const item = itemMatch ? itemMatch[1].trim() : '';
             const description = descriptionMatch ? descriptionMatch[1].trim() : '';
             const reason = reasonMatch ? reasonMatch[1].trim() : '';
             
             return { item, description, reason };
-          }).filter(p => p.item || p.description || p.reason);
+          }).filter(p => p.item && (p.description || p.reason));
           
           summary[type] = parts;
         } else {
@@ -159,7 +160,7 @@ const AppMain = () => {
       }
       analysisData.summary_of_changes = summary;
     }
-  
+
     return {
       rewritten_resume: result.rewritten_resume || "",
       analysis: analysisData,
@@ -195,7 +196,7 @@ const AppMain = () => {
       } catch (parseError) {
         console.error("Error parsing AI output:", parseError);
         console.error("Raw AI response:", responseText);
-        throw parseError; // Re-throw to propagate the error
+        throw parseError;
       }
 
       setLatexInput(parsedResponse.rewritten_resume);
