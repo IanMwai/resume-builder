@@ -94,7 +94,7 @@ const AppMain = () => {
     }
   };
 
-  // COMPLETELY REWRITTEN SIMPLE PARSING FUNCTION
+  // FIXED PARSING FUNCTION - CONSISTENT WITH BACKEND FORMAT
   function parseAIOutput(text) {
     console.log("Parsing AI response...");
     
@@ -168,19 +168,6 @@ const AppMain = () => {
         return null;
       }).filter(Boolean);
     }
-    
-    return {
-      rewritten_resume: result.rewritten_resume,
-      analysis: {
-        match_score: matchScore,
-        match_score_explanation: matchScoreExplanation,
-        summary_of_changes: {
-          enhanced_parts: enhancedParts,
-          removed_parts: removedParts
-        }
-      }
-    };
-  
     
     return {
       rewritten_resume: result.rewritten_resume,
