@@ -2,7 +2,7 @@ const functions = require("firebase-functions");
 const cors = require("cors")({origin: true});
 const {GoogleGenerativeAI} = require("@google/generative-ai");
 
-// Helper function for retrying with exponential backoff
+// Helper function for retrying with exponential backoff (v3)
 const withRetry = async (fn, retries = 3, delay = 1000) => {
   let lastError;
   for (let i = 0; i < retries; i++) {
