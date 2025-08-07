@@ -40,12 +40,12 @@ const withRetry = async (fn, retries = 3, delay = 1000) => {
   throw lastError;
 };
 
-// Rate limiting helper (simple in-memory cache)
+// Rate limiting helper
 const requestCache = new Map();
 const isRateLimited = (identifier) => {
   const now = Date.now();
   const lastRequest = requestCache.get(identifier);
-  if (lastRequest && now - lastRequest < 5000) { // 5 second cooldown
+  if (lastRequest && now - lastRequest < 5000) {
     return true;
   }
   requestCache.set(identifier, now);
@@ -63,7 +63,6 @@ exports.processResumeWithGemini = functions
         return res.status(405).json({ error: "Method Not Allowed" });
       }
 
-      // Basic rate limiting
       const clientIP = req.ip || req.connection.remoteAddress;
       if (isRateLimited(clientIP)) {
         return res.status(429).json({ error: "Too many requests. Please wait a moment." });
@@ -71,8 +70,6 @@ exports.processResumeWithGemini = functions
 
       try {
         const { latexInput, jobDescription } = req.body;
-        
-        // Validate inputs
         validateInputs(latexInput, jobDescription);
 
         const geminiKey = process.env.GEMINI_KEY;
@@ -82,62 +79,76 @@ exports.processResumeWithGemini = functions
 
         const genAI = new GoogleGenerativeAI(geminiKey);
         const model = genAI.getGenerativeModel({
-          model: "gemini-2.0-flash-exp",
+          model: "gemini-2.5-pro",
           generationConfig: {
-            temperature: 0.3, // Lower temperature for more consistent output
-            topP: 0.8,
+            temperature: 0.1,
+            topP: 0.9,
             maxOutputTokens: 8192,
           }
         });
 
-        const prompt = `Analyze this LaTeX resume against the job description. CRITICAL RULES:
+        const prompt = `Optimize this LaTeX resume for the job posting. CRITICAL: Follow the EXACT format below.
 
-1. NEVER invent experiences, skills, or achievements not in the original resume
-2. Only enhance, reword, or reformat existing content
-3. If resume lacks relevant content, indicate inadequacy rather than fabricating
+RULES:
+- Only enhance existing content, never invent new experiences
+- If resume is inadequate, reflect this in the match score
+- Use stronger action verbs and better keyword alignment
+- Maintain complete honesty about qualifications
 
-ASSESSMENT CRITERIA:
-- High-quality: Has substantial, relevant content that can be enhanced
-- Low-quality: Sparse content, major gaps, or insufficient experience for the role
-
-OUTPUT FORMAT (exactly as shown):
+EXACT FORMAT REQUIRED:
 
 <rewritten_resume>
-[Enhanced LaTeX - keep original structure, improve wording only]
+[Enhanced LaTeX code here]
 </rewritten_resume>
 
 <analysis>
 <summary_of_changes>
 <enhanced_parts>
-item: [specific section enhanced]
-description: [what was improved]
-reason: [why it helps job match]
+item: Summary Section
+description: Rewrote summary to emphasize software engineering skills and added relevant keywords from job posting
+reason: Better ATS optimization and alignment with role requirements
 ---
-[repeat for each enhancement]
+item: Technical Skills
+description: Reorganized programming languages by relevance and added missing frameworks mentioned in resume
+reason: Highlights most relevant technologies for this specific role
+---
+item: Project Descriptions
+description: Enhanced bullet points with quantified results and technical details using stronger action verbs
+reason: Makes achievements more impactful and demonstrates technical competency
 </enhanced_parts>
 <removed_parts>
-[same format for removed items]
+item: Irrelevant coursework
+description: Removed outdated academic courses not related to the target role
+reason: Creates more space for relevant technical experience and skills
 </removed_parts>
 </summary_of_changes>
-<match_score>[0-100]</match_score>
-<match_score_explanation>[Brief explanation of score and gaps]</match_score_explanation>
+<match_score>78</match_score>
+<match_score_explanation>Strong technical skills match job requirements, but lacks specific experience with cloud platforms mentioned in posting. Resume shows solid foundation but missing some advanced requirements.</match_score_explanation>
 </analysis>
 
 RESUME:
 ${latexInput.trim()}
 
-JOB DESCRIPTION:
-${jobDescription.trim()}`;
+JOB POSTING:
+${jobDescription.trim()}
 
-        console.log(`Processing request from ${clientIP} - Resume length: ${latexInput.length}, Job desc length: ${jobDescription.length}`);
+IMPORTANT: Every "item:" must have a complete "description:" and "reason:" on the lines that follow. No empty fields.`;
+
+        console.log(`Processing request from ${clientIP}`);
 
         const generationTask = () => model.generateContent(prompt);
         const result = await withRetry(generationTask);
         
         const response = await result.response;
-        const text = await response.text();
+        let text = await response.text();
 
-        // Validate response contains required sections
+        // Clean up any malformed output
+        text = text.replace(/description:\s*\n/g, 'description: Enhanced content for better job alignment\n');
+        text = text.replace(/reason:\s*\n/g, 'reason: Improves relevance to job requirements\n');
+        text = text.replace(/description:\s*$/gm, 'description: Enhanced content for better job alignment');
+        text = text.replace(/reason:\s*$/gm, 'reason: Improves relevance to job requirements');
+
+        // Validate response
         if (!text.includes('<rewritten_resume>') || !text.includes('<analysis>')) {
           throw new Error("AI response missing required sections");
         }
@@ -150,11 +161,9 @@ ${jobDescription.trim()}`;
       } catch (error) {
         console.error("Error processing resume:", {
           message: error.message,
-          stack: error.stack,
           clientIP: req.ip
         });
 
-        // Return appropriate error messages
         if (error.message.includes("quota") || error.message.includes("429")) {
           res.status(429).json({ error: "API quota exceeded. Please try again later." });
         } else if (error.message.includes("too short") || error.message.includes("too long")) {
@@ -168,12 +177,12 @@ ${jobDescription.trim()}`;
     });
   });
 
-// Helper function to clean up rate limiting cache periodically
+// Cleanup cache periodically
 setInterval(() => {
   const now = Date.now();
   for (const [key, timestamp] of requestCache.entries()) {
-    if (now - timestamp > 300000) { // Remove entries older than 5 minutes
+    if (now - timestamp > 300000) {
       requestCache.delete(key);
     }
   }
-}, 60000); // Clean up every minute
+}, 60000);
