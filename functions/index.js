@@ -106,6 +106,7 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
 
     } catch (error) {
       console.error("Error processing resume with Gemini:", error);
+      res.set('Content-Type', 'text/plain');
       res.status(500).send(`Error processing resume with AI: ${error.message}`);
     }
   });
