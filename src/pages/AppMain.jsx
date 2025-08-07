@@ -32,7 +32,6 @@ const AppMain = () => {
     return () => unsubscribe();
   }, []);
 
-  // Persist latexInput and jobDescription to localStorage
   useEffect(() => {
     localStorage.setItem('latexInput', latexInput);
   }, [latexInput]);
@@ -41,7 +40,6 @@ const AppMain = () => {
     localStorage.setItem('jobDescription', jobDescription);
   }, [jobDescription]);
 
-  // Persist processing results to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('summary', JSON.stringify(summary));
   }, [summary]);
@@ -71,7 +69,7 @@ const AppMain = () => {
     if (error) {
       const timer = setTimeout(() => {
         setError('');
-      }, 5000); // Clear error after 5 seconds
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [error]);
@@ -80,7 +78,7 @@ const AppMain = () => {
     if (successMessage) {
       const timer = setTimeout(() => {
         setSuccessMessage('');
-      }, 5000); // Clear success message after 5 seconds
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
@@ -96,39 +94,51 @@ const AppMain = () => {
     }
   };
 
-  // IMPROVED PARSING FUNCTION
+  // ROBUST PARSING FUNCTION WITH BETTER ERROR HANDLING
   function parseAIOutput(text) {
+    console.log("Parsing AI response, length:", text.length);
+    console.log("Response preview:", text.substring(0, 300));
+    
     const result = {};
     const sections = ["rewritten_resume", "analysis"];
 
+    // Extract main sections
     for (const section of sections) {
       const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
       const match = text.match(regex);
       if (match && match[1]) {
         result[section] = match[1].trim();
+      } else {
+        console.error(`Missing section: ${section}`);
       }
     }
 
     if (!result.analysis) {
-      throw new Error("Missing <analysis> section in AI response");
+      console.error("Full AI response:", text);
+      throw new Error("Missing <analysis> section in AI response. The AI may have generated an incomplete response.");
     }
 
     const analysisData = {};
     const analysisSections = ["summary_of_changes", "match_score", "match_score_explanation"];
     
+    // Extract analysis subsections
     for (const section of analysisSections) {
       const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
       const match = result.analysis.match(regex);
       if (match && match[1]) {
         analysisData[section] = match[1].trim();
+      } else {
+        console.warn(`Missing analysis section: ${section}`);
       }
     }
 
+    // Parse match score
     if (analysisData.match_score) {
       const score = parseInt(analysisData.match_score, 10);
       analysisData.match_score = isNaN(score) ? 0 : score;
     }
 
+    // Parse summary of changes
     if (analysisData.summary_of_changes) {
       const summary = {};
       const changeTypes = ["enhanced_parts", "removed_parts"];
@@ -138,42 +148,45 @@ const AppMain = () => {
         const match = analysisData.summary_of_changes.match(regex);
         
         if (match && match[1]) {
-          const parts = match[1].trim().split('---').map(part => {
-            const trimmedPart = part.trim();
-            
-            // More precise parsing to avoid duplication
-            const lines = trimmedPart.split('\n');
-            let item = '';
-            let description = '';
-            let reason = '';
-            
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i].trim();
-              if (line.startsWith('item:')) {
-                item = line.replace('item:', '').trim();
-              } else if (line.startsWith('description:')) {
-                // Only capture until next field or end
-                let desc = line.replace('description:', '').trim();
-                for (let j = i + 1; j < lines.length; j++) {
-                  if (lines[j].trim().startsWith('reason:')) break;
-                  desc += ' ' + lines[j].trim();
+          try {
+            const parts = match[1].trim().split('---').map(part => {
+              const trimmedPart = part.trim();
+              if (!trimmedPart) return null;
+              
+              const lines = trimmedPart.split('\n').map(line => line.trim());
+              let item = '';
+              let description = '';
+              let reason = '';
+              
+              for (const line of lines) {
+                if (line.startsWith('item:')) {
+                  item = line.replace('item:', '').trim();
+                } else if (line.startsWith('description:')) {
+                  description = line.replace('description:', '').trim();
+                } else if (line.startsWith('reason:')) {
+                  reason = line.replace('reason:', '').trim();
                 }
-                description = desc.trim();
-              } else if (line.startsWith('reason:')) {
-                reason = line.replace('reason:', '').trim();
-                break; // Stop here to avoid capturing more
               }
-            }
+              
+              return item && description && reason ? { item, description, reason } : null;
+            }).filter(Boolean);
             
-            return { item, description, reason };
-          }).filter(p => p.item && p.description && p.reason);
-          
-          summary[type] = parts;
+            summary[type] = parts;
+          } catch (parseError) {
+            console.error(`Error parsing ${type}:`, parseError);
+            summary[type] = [];
+          }
         } else {
           summary[type] = [];
         }
       }
       analysisData.summary_of_changes = summary;
+    } else {
+      // Provide fallback empty structure
+      analysisData.summary_of_changes = {
+        enhanced_parts: [],
+        removed_parts: []
+      };
     }
 
     return {
@@ -200,29 +213,64 @@ const AppMain = () => {
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        let errorText;
+        try {
+          errorText = await response.text();
+        } catch {
+          errorText = `HTTP ${response.status}`;
+        }
+        throw new Error(`Server error (${response.status}): ${errorText}`);
       }
 
       const responseText = await response.text();
+      
+      // Check if response looks valid
+      if (!responseText || responseText.length < 100) {
+        throw new Error("Received empty or very short response from AI service");
+      }
+
       let parsedResponse;
       try {
         parsedResponse = parseAIOutput(responseText);
       } catch (parseError) {
         console.error("Error parsing AI output:", parseError);
         console.error("Raw AI response:", responseText);
-        throw parseError;
+        
+        // More specific error message
+        if (parseError.message.includes("Missing <analysis>")) {
+          throw new Error("AI generated incomplete response. Please try again - this usually works on the second attempt.");
+        } else {
+          throw new Error(`Failed to parse AI response: ${parseError.message}`);
+        }
+      }
+
+      // Validate parsed response
+      if (!parsedResponse.rewritten_resume) {
+        throw new Error("AI did not return enhanced resume content");
       }
 
       setLatexInput(parsedResponse.rewritten_resume);
-      setSummary(parsedResponse.analysis.summary_of_changes);
-      setMatchScore(parsedResponse.analysis.match_score);
-      setMatchScoreExplanation(parsedResponse.analysis.match_score_explanation);
+      setSummary(parsedResponse.analysis.summary_of_changes || null);
+      setMatchScore(parsedResponse.analysis.match_score || null);
+      setMatchScoreExplanation(parsedResponse.analysis.match_score_explanation || '');
       setProcessed(true);
       setSuccessMessage('Resume processed successfully!');
+
     } catch (error) {
-      setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX and you have added a job description.');
       console.error('Error processing resume:', error);
+      
+      // More user-friendly error messages
+      if (error.message.includes("quota exceeded")) {
+        setError('AI service quota exceeded. Please try again in a few minutes.');
+      } else if (error.message.includes("rate limit")) {
+        setError('Too many requests. Please wait a moment and try again.');
+      } else if (error.message.includes("incomplete response")) {
+        setError('AI generated incomplete response. Please try again - this usually works on retry.');
+      } else if (error.message.includes("Server error")) {
+        setError('Server error occurred. Please check your inputs and try again.');
+      } else {
+        setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX and you have added a job description.');
+      }
     }
 
     setProcessing(false);
