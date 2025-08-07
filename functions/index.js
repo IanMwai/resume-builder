@@ -97,40 +97,40 @@ exports.processResumeWithGemini = functions
           }
         });
 
-        const prompt = `You are a resume optimizer. Enhance the LaTeX resume for the job posting. 
+        const prompt = `Enhance this resume for the job. Be EXTREMELY CONCISE.
 
-CRITICAL: You MUST output in this EXACT format. Do not deviate from this structure.
+EXACT FORMAT REQUIRED:
 
 <rewritten_resume>
-[Enhanced LaTeX code goes here]
+[Enhanced LaTeX code]
 </rewritten_resume>
 
 <analysis>
 <summary_of_changes>
 <enhanced_parts>
 item: Summary
-description: Added relevant keywords
-reason: Better ATS matching
+description: Added key job terms
+reason: Better keyword matching
 ---
 item: Skills
-description: Reorganized by relevance
+description: Reordered by relevance
 reason: Highlight job requirements
 </enhanced_parts>
 <removed_parts>
-item: Old content
-description: Removed outdated info
-reason: Focus on relevant skills
+item: Old coursework
+description: Removed outdated content  
+reason: Space for relevant info
 </removed_parts>
 </summary_of_changes>
-<match_score>75</match_score>
-<match_score_explanation>Good technical match but missing some requirements.</match_score_explanation>
+<match_score>85</match_score>
+<match_score_explanation>Strong match with relevant skills but missing some requirements.</match_score_explanation>
 </analysis>
 
 RULES:
-- Only enhance existing content, never fabricate
-- Keep descriptions under 8 words
-- Be honest about qualifications
-- Calculate real match score 0-100
+- Only enhance existing content
+- Max 6 words per description
+- Max 5 words per reason
+- Calculate honest score 0-100
 
 RESUME:
 ${latexInput.trim()}
@@ -146,24 +146,12 @@ ${jobDescription.trim()}`;
         const response = await result.response;
         const text = await response.text();
 
-        // Log the response for debugging
-        console.log("AI Response length:", text.length);
         console.log("AI Response preview:", text.substring(0, 500));
 
-        // More thorough validation
-        const requiredSections = [
-          '<rewritten_resume>',
-          '</rewritten_resume>',
-          '<analysis>',
-          '</analysis>',
-          '<match_score>',
-          '</match_score>'
-        ];
-
+        const requiredSections = ['<rewritten_resume>', '<analysis>', '<match_score>'];
         const missingSections = requiredSections.filter(section => !text.includes(section));
         if (missingSections.length > 0) {
           console.error("Missing sections:", missingSections);
-          console.error("Full AI response:", text);
           throw new Error(`AI response missing required sections: ${missingSections.join(', ')}`);
         }
 
@@ -175,7 +163,6 @@ ${jobDescription.trim()}`;
       } catch (error) {
         console.error("Resume processing error:", {
           message: error.message,
-          stack: error.stack,
           clientIP: req.ip,
           timestamp: new Date().toISOString()
         });

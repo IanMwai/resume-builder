@@ -94,104 +94,78 @@ const AppMain = () => {
     }
   };
 
-  // ROBUST PARSING FUNCTION WITH BETTER ERROR HANDLING
+  // COMPLETELY REWRITTEN SIMPLE PARSING FUNCTION
   function parseAIOutput(text) {
-    console.log("Parsing AI response, length:", text.length);
-    console.log("Response preview:", text.substring(0, 300));
+    console.log("Parsing AI response...");
     
     const result = {};
-    const sections = ["rewritten_resume", "analysis"];
-
-    // Extract main sections
-    for (const section of sections) {
-      const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
-      const match = text.match(regex);
-      if (match && match[1]) {
-        result[section] = match[1].trim();
-      } else {
-        console.error(`Missing section: ${section}`);
-      }
-    }
-
-    if (!result.analysis) {
-      console.error("Full AI response:", text);
-      throw new Error("Missing <analysis> section in AI response. The AI may have generated an incomplete response.");
-    }
-
-    const analysisData = {};
-    const analysisSections = ["summary_of_changes", "match_score", "match_score_explanation"];
     
-    // Extract analysis subsections
-    for (const section of analysisSections) {
-      const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
-      const match = result.analysis.match(regex);
-      if (match && match[1]) {
-        analysisData[section] = match[1].trim();
-      } else {
-        console.warn(`Missing analysis section: ${section}`);
-      }
+    // Extract rewritten resume
+    const resumeMatch = text.match(/<rewritten_resume>([\s\S]*?)<\/rewritten_resume>/i);
+    result.rewritten_resume = resumeMatch ? resumeMatch[1].trim() : "";
+    
+    // Extract analysis
+    const analysisMatch = text.match(/<analysis>([\s\S]*?)<\/analysis>/i);
+    if (!analysisMatch) {
+      throw new Error("Missing <analysis> section in AI response");
     }
-
-    // Parse match score
-    if (analysisData.match_score) {
-      const score = parseInt(analysisData.match_score, 10);
-      analysisData.match_score = isNaN(score) ? 0 : score;
-    }
-
-    // Parse summary of changes
-    if (analysisData.summary_of_changes) {
-      const summary = {};
-      const changeTypes = ["enhanced_parts", "removed_parts"];
-      
-      for (const type of changeTypes) {
-        const regex = new RegExp(`<${type}>([\\s\\S]*?)</${type}>`, 'i');
-        const match = analysisData.summary_of_changes.match(regex);
+    
+    const analysisText = analysisMatch[1];
+    
+    // Extract match score
+    const scoreMatch = analysisText.match(/<match_score>(\d+)<\/match_score>/i);
+    const matchScore = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+    
+    // Extract match explanation
+    const explanationMatch = analysisText.match(/<match_score_explanation>([\s\S]*?)<\/match_score_explanation>/i);
+    const matchScoreExplanation = explanationMatch ? explanationMatch[1].trim() : "";
+    
+    // Extract enhanced parts
+    const enhancedMatch = analysisText.match(/<enhanced_parts>([\s\S]*?)<\/enhanced_parts>/i);
+    let enhancedParts = [];
+    if (enhancedMatch) {
+      enhancedParts = enhancedMatch[1].split('---').map(part => {
+        const lines = part.trim().split('\n');
+        let item = '', description = '', reason = '';
         
-        if (match && match[1]) {
-          try {
-            const parts = match[1].trim().split('---').map(part => {
-              const trimmedPart = part.trim();
-              if (!trimmedPart) return null;
-              
-              const lines = trimmedPart.split('\n').map(line => line.trim());
-              let item = '';
-              let description = '';
-              let reason = '';
-              
-              for (const line of lines) {
-                if (line.startsWith('item:')) {
-                  item = line.replace('item:', '').trim();
-                } else if (line.startsWith('description:')) {
-                  description = line.replace('description:', '').trim();
-                } else if (line.startsWith('reason:')) {
-                  reason = line.replace('reason:', '').trim();
-                }
-              }
-              
-              return item && description && reason ? { item, description, reason } : null;
-            }).filter(Boolean);
-            
-            summary[type] = parts;
-          } catch (parseError) {
-            console.error(`Error parsing ${type}:`, parseError);
-            summary[type] = [];
-          }
-        } else {
-          summary[type] = [];
+        lines.forEach(line => {
+          if (line.startsWith('item:')) item = line.replace('item:', '').trim();
+          else if (line.startsWith('description:')) description = line.replace('description:', '').trim();
+          else if (line.startsWith('reason:')) reason = line.replace('reason:', '').trim();
+        });
+        
+        return { item, description, reason };
+      }).filter(part => part.item);
+    }
+    
+    // Extract removed parts
+    const removedMatch = analysisText.match(/<removed_parts>([\s\S]*?)<\/removed_parts>/i);
+    let removedParts = [];
+    if (removedMatch) {
+      removedParts = removedMatch[1].split('---').map(part => {
+        const lines = part.trim().split('\n');
+        let item = '', description = '', reason = '';
+        
+        lines.forEach(line => {
+          if (line.startsWith('item:')) item = line.replace('item:', '').trim();
+          else if (line.startsWith('description:')) description = line.replace('description:', '').trim();
+          else if (line.startsWith('reason:')) reason = line.replace('reason:', '').trim();
+        });
+        
+        return { item, description, reason };
+      }).filter(part => part.item);
+    }
+    
+    return {
+      rewritten_resume: result.rewritten_resume,
+      analysis: {
+        match_score: matchScore,
+        match_score_explanation: matchScoreExplanation,
+        summary_of_changes: {
+          enhanced_parts: enhancedParts,
+          removed_parts: removedParts
         }
       }
-      analysisData.summary_of_changes = summary;
-    } else {
-      // Provide fallback empty structure
-      analysisData.summary_of_changes = {
-        enhanced_parts: [],
-        removed_parts: []
-      };
-    }
-
-    return {
-      rewritten_resume: result.rewritten_resume || "",
-      analysis: analysisData,
     };
   }
 
@@ -224,9 +198,8 @@ const AppMain = () => {
 
       const responseText = await response.text();
       
-      // Check if response looks valid
       if (!responseText || responseText.length < 100) {
-        throw new Error("Received empty or very short response from AI service");
+        throw new Error("Received empty response from AI service");
       }
 
       let parsedResponse;
@@ -235,16 +208,9 @@ const AppMain = () => {
       } catch (parseError) {
         console.error("Error parsing AI output:", parseError);
         console.error("Raw AI response:", responseText);
-        
-        // More specific error message
-        if (parseError.message.includes("Missing <analysis>")) {
-          throw new Error("AI generated incomplete response. Please try again - this usually works on the second attempt.");
-        } else {
-          throw new Error(`Failed to parse AI response: ${parseError.message}`);
-        }
+        throw new Error("AI generated incomplete response. Please try again.");
       }
 
-      // Validate parsed response
       if (!parsedResponse.rewritten_resume) {
         throw new Error("AI did not return enhanced resume content");
       }
@@ -259,15 +225,12 @@ const AppMain = () => {
     } catch (error) {
       console.error('Error processing resume:', error);
       
-      // More user-friendly error messages
       if (error.message.includes("quota exceeded")) {
         setError('AI service quota exceeded. Please try again in a few minutes.');
       } else if (error.message.includes("rate limit")) {
         setError('Too many requests. Please wait a moment and try again.');
       } else if (error.message.includes("incomplete response")) {
-        setError('AI generated incomplete response. Please try again - this usually works on retry.');
-      } else if (error.message.includes("Server error")) {
-        setError('Server error occurred. Please check your inputs and try again.');
+        setError('AI generated incomplete response. Please try again.');
       } else {
         setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX and you have added a job description.');
       }
@@ -431,51 +394,42 @@ const AppMain = () => {
                   <span className="transition-transform duration-200 group-open:rotate-90">▶</span>
                 </summary>
                 <div className="mt-3 text-gray-600 text-sm font-inter">
-                  {summary.enhanced_parts && summary.enhanced_parts.length > 0 ? (
+                  {summary.enhanced_parts && summary.enhanced_parts.length > 0 && (
                     <div className="mb-4">
-                      <p className="font-semibold text-green-700 mb-2">Enhanced/Edited Parts:</p>
-                      <div className="space-y-3">
+                      <p className="font-semibold text-green-700 mb-2">Enhanced Parts:</p>
+                      <div className="space-y-2">
                         {summary.enhanced_parts.map((change, index) => (
                           <div key={index} className="bg-green-50 p-3 rounded-md border-l-4 border-green-400">
-                            <div className="font-semibold text-green-800 mb-1">{change.item}</div>
-                            <div className="text-gray-700 mb-2">{change.description}</div>
-                            <div className="text-sm text-green-600 italic">
-                              <span className="font-medium">Why:</span> {change.reason}
+                            <div className="font-semibold text-green-800">{change.item}</div>
+                            <div className="text-gray-700 mt-1">{change.description}</div>
+                            <div className="text-sm text-green-600 italic mt-1">
+                              Why: {change.reason}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  ) : (
-                    <div className="mb-4">
-                      <p className="font-semibold text-green-700">No parts enhanced/edited.</p>
-                    </div>
                   )}
                   
-                  {summary.removed_parts && summary.removed_parts.length > 0 ? (
+                  {summary.removed_parts && summary.removed_parts.length > 0 && (
                     <div className="mb-2">
                       <p className="font-semibold text-red-700 mb-2">Removed Parts:</p>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {summary.removed_parts.map((change, index) => (
                           <div key={index} className="bg-red-50 p-3 rounded-md border-l-4 border-red-400">
-                            <div className="font-semibold text-red-800 mb-1">{change.item}</div>
-                            <div className="text-gray-700 mb-2">{change.description}</div>
-                            <div className="text-sm text-red-600 italic">
-                              <span className="font-medium">Why:</span> {change.reason}
+                            <div className="font-semibold text-red-800">{change.item}</div>
+                            <div className="text-gray-700 mt-1">{change.description}</div>
+                            <div className="text-sm text-red-600 italic mt-1">
+                              Why: {change.reason}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  ) : (
-                    <div className="mb-2">
-                      <p className="font-semibold text-red-700">No parts removed.</p>
-                    </div>
                   )}
                   
-                  {(!summary.enhanced_parts || summary.enhanced_parts.length === 0) &&
-                   (!summary.removed_parts || summary.removed_parts.length === 0) && (
-                    <p className="text-gray-600 italic">No significant structural changes detected, primarily rephrasing.</p>
+                  {(!summary.enhanced_parts?.length && !summary.removed_parts?.length) && (
+                    <p className="text-gray-600 italic">Primarily rephrasing and minor improvements.</p>
                   )}
                 </div>
               </details>
