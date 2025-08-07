@@ -118,7 +118,14 @@ const AppMain = () => {
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
-      const jsonResponse = await response.json();
+      let jsonResponse;
+      try {
+        const responseText = await response.text();
+        jsonResponse = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('JSON parsing error:', jsonError);
+        throw new Error('Failed to parse server response. The AI may have generated invalid content.');
+      }
 
       setLatexInput(jsonResponse.rewritten_resume);
       setSummary(jsonResponse.analysis.summary_of_changes);
@@ -127,7 +134,7 @@ const AppMain = () => {
       setProcessed(true);
       setSuccessMessage('Resume processed successfully!');
     } catch (error) {
-      setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX  and you have added a job description.');
+      setError('Error processing resume with AI. Please try again. Ensure your input is valid LaTeX and you have added a job description.');
       console.error('Error processing resume:', error);
     }
 

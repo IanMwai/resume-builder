@@ -2,14 +2,43 @@ const functions = require("firebase-functions");
 const cors = require("cors")({origin: true});
 const {GoogleGenerativeAI} = require("@google/generative-ai");
 
-// Helper function to parse the custom AI output format
+// Fix 1: Add helper functions for JSON escaping
+function sanitizeForJSON(str) {
+  if (typeof str !== 'string') return str;
+  
+  // Replace problematic characters that can break JSON parsing
+  return str
+    .replace(/\\/g, '\\')  // Escape backslashes
+    .replace(/"/g, '\"')    // Escape quotes
+    .replace(/\n/g, '\n')   // Escape newlines
+    .replace(/\r/g, '\r')   // Escape carriage returns
+    .replace(/\t/g, '\t')   // Escape tabs
+    .replace(/\f/g, '\f')   // Escape form feeds
+    .replace(/\b/g, '\b');  // Escape backspaces
+}
+
+function sanitizeResponse(obj) {
+  if (typeof obj === 'string') {
+    return sanitizeForJSON(obj);
+  } else if (Array.isArray(obj)) {
+    return obj.map(sanitizeResponse);
+  } else if (obj && typeof obj === 'object') {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeResponse(value);
+    }
+    return sanitized;
+  }
+  return obj;
+}
+
+// Fix 4: Improved parseAIOutput function
 function parseAIOutput(text) {
   const result = {};
   const sections = ["rewritten_resume", "analysis"];
 
   for (const section of sections) {
-    const regex = new RegExp(`<${section}>([\s\S]*?)<
-/${section}>`);
+    const regex = new RegExp(`<${section}>([\s\S]*?)<\/${section}>`, 'i');
     const match = text.match(regex);
     if (match && match[1]) {
       result[section] = match[1].trim();
@@ -22,9 +51,9 @@ function parseAIOutput(text) {
 
   const analysisData = {};
   const analysisSections = ["summary_of_changes", "match_score", "match_score_explanation"];
+  
   for (const section of analysisSections) {
-    const regex = new RegExp(`<${section}>([\s\S]*?)<
-/${section}>`);
+    const regex = new RegExp(`<${section}>([\s\S]*?)<\/${section}>`, 'i');
     const match = result.analysis.match(regex);
     if (match && match[1]) {
       analysisData[section] = match[1].trim();
@@ -32,27 +61,31 @@ function parseAIOutput(text) {
   }
 
   if (analysisData.match_score) {
-    analysisData.match_score = parseInt(analysisData.match_score, 10);
+    const score = parseInt(analysisData.match_score, 10);
+    analysisData.match_score = isNaN(score) ? 0 : score;
   }
 
   if (analysisData.summary_of_changes) {
     const summary = {};
     const changeTypes = ["enhanced_parts", "removed_parts"];
+    
     for (const type of changeTypes) {
-      const regex = new RegExp(`<${type}>([\s\S]*?)<
-/${type}>`);
+      const regex = new RegExp(`<${type}>([\s\S]*?)<\/${type}>`, 'i');
       const match = analysisData.summary_of_changes.match(regex);
+      
       if (match && match[1]) {
-        summary[type] = match[1].trim().split('---').map(part => {
-          const itemMatch = part.match(/item:([\s\S]*?)description:/);
-          const descriptionMatch = part.match(/description:([\s\S]*?)reason:/);
-          const reasonMatch = part.match(/reason:([\s\S]*)/);
-          return {
-            item: itemMatch ? itemMatch[1].trim() : "",
-            description: descriptionMatch ? descriptionMatch[1].trim() : "",
-            reason: reasonMatch ? reasonMatch[1].trim() : "",
-          };
+        const parts = match[1].trim().split('---').map(part => {
+          const lines = part.trim().split('\n');
+          const item = lines.find(line => line.startsWith('item:'))?.replace('item:', '').trim() || '';
+          const description = lines.find(line => line.startsWith('description:'))?.replace('description:', '').trim() || '';
+          const reason = lines.find(line => line.startsWith('reason:'))?.replace('reason:', '').trim() || '';
+          
+          return { item, description, reason };
         }).filter(p => p.item || p.description || p.reason);
+        
+        summary[type] = parts;
+      } else {
+        summary[type] = [];
       }
     }
     analysisData.summary_of_changes = summary;
@@ -63,6 +96,7 @@ function parseAIOutput(text) {
     analysis: analysisData,
   };
 }
+
 
 // Helper function for retrying with exponential backoff
 const withRetry = async (fn, retries = 3, delay = 1000) => {
@@ -162,9 +196,14 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       const response = await result.response;
       const text = await response.text();
 
+      // Fix 2: Update response handling
       try {
         const finalResponse = parseAIOutput(text);
-        res.status(200).json(finalResponse);
+        
+        // Sanitize the response before sending as JSON
+        const sanitizedResponse = sanitizeResponse(finalResponse);
+        
+        res.status(200).json(sanitizedResponse);
       } catch (parseError) {
         console.error("Error parsing custom AI output:", parseError, "\nRaw AI response was:", text);
         return res.status(500).send(`Error parsing custom AI output: ${parseError.message}`);
