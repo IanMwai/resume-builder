@@ -12,7 +12,7 @@ const withRetry = async (fn, retries = 3, delay = 1000) => {
       lastError = error;
       if (error.message.includes("503")) {
         console.log(`Attempt ${i + 1} failed with 503. Retrying in ${delay}ms...`);
-        await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+        await new Promise(res => require('timers').setTimeout(res, delay * Math.pow(2, i)));
       } else {
         throw error; // Re-throw non-retriable errors immediately
       }

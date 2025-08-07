@@ -101,7 +101,8 @@ const AppMain = () => {
     const sections = ["rewritten_resume", "analysis"];
   
     for (const section of sections) {
-      const regex = new RegExp(`<${section}>([\s\S]*?)<\/${section}>`, 'i');
+      // Fixed: Removed unnecessary escapes from \s, \S, and \/
+      const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
       const match = text.match(regex);
       if (match && match[1]) {
         result[section] = match[1].trim();
@@ -116,7 +117,8 @@ const AppMain = () => {
     const analysisSections = ["summary_of_changes", "match_score", "match_score_explanation"];
     
     for (const section of analysisSections) {
-      const regex = new RegExp(`<${section}>([\s\S]*?)<\/${section}>`, 'i');
+      // Fixed: Removed unnecessary escapes from \s, \S, and \/
+      const regex = new RegExp(`<${section}>([\\s\\S]*?)</${section}>`, 'i');
       const match = result.analysis.match(regex);
       if (match && match[1]) {
         analysisData[section] = match[1].trim();
@@ -133,7 +135,8 @@ const AppMain = () => {
       const changeTypes = ["enhanced_parts", "removed_parts"];
       
       for (const type of changeTypes) {
-        const regex = new RegExp(`<${type}>([\s\S]*?)<\/${type}>`, 'i');
+        // Fixed: Removed unnecessary escapes from \s, \S, and \/
+        const regex = new RegExp(`<${type}>([\\s\\S]*?)</${type}>`, 'i');
         const match = analysisData.summary_of_changes.match(regex);
         
         if (match && match[1]) {
@@ -213,8 +216,6 @@ const AppMain = () => {
       setSuccessMessage('Resume downloaded successfully! Use a LaTeX compiler like Overleaf to generate a PDF from your .tex file.');
     }
   };
-
-  
 
   const handleSaveResume = async () => {
     if (!user) {
@@ -302,7 +303,6 @@ const AppMain = () => {
           </div>
         </div>
         
-        
         <div className="mt-6 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
           <button
             onClick={handleProcessResume}
@@ -318,8 +318,8 @@ const AppMain = () => {
           >
             Download .tex
           </button>
-          
         </div>
+        
         {processing && (
           <div className="w-full bg-crimson-light rounded-full h-2.5 mt-4 overflow-hidden">
             <div className="h-full bg-crimson-dark animate-pulse-indeterminate"></div>
