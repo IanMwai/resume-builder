@@ -141,10 +141,13 @@ const AppMain = () => {
         
         if (match && match[1]) {
           const parts = match[1].trim().split('---').map(part => {
-            const lines = part.trim().split('\n');
-            const item = lines.find(line => line.startsWith('item:'))?.replace('item:', '').trim() || '';
-            const description = lines.find(line => line.startsWith('description:'))?.replace('description:', '').trim() || '';
-            const reason = lines.find(line => line.startsWith('reason:'))?.replace('reason:', '').trim() || '';
+            const itemMatch = part.match(/item:\s*(.*?)(?:\n|$)/);
+            const descriptionMatch = part.match(/description:\s*(.*?)(?:\n|$)/);
+            const reasonMatch = part.match(/reason:\s*(.*?)(?:\n|$)/);
+
+            const item = itemMatch ? itemMatch[1].trim() : '';
+            const description = descriptionMatch ? descriptionMatch[1].trim() : '';
+            const reason = reasonMatch ? reasonMatch[1].trim() : '';
             
             return { item, description, reason };
           }).filter(p => p.item || p.description || p.reason);
