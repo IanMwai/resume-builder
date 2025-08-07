@@ -386,11 +386,15 @@ const AppMain = () => {
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-md font-medium text-gray-700">Match Score:</span>
-                  <span className="text-lg font-bold text-crimson-dark">{matchScore}%</span>
+                  <span className={`text-lg font-bold ${matchScore < 50 ? 'text-red-600' : 'text-crimson-dark'}`}>
+                    {matchScore}%
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div 
-                    className="bg-crimson-light h-2.5 rounded-full transition-all duration-500 ease-out"
+                    className={`h-2.5 rounded-full transition-all duration-500 ease-out ${
+                      matchScore < 50 ? 'bg-red-500' : 'bg-crimson-light'
+                    }`}
                     style={{ width: `${matchScore}%` }}
                   ></div>
                 </div>
@@ -400,62 +404,96 @@ const AppMain = () => {
               </div>
             )}
 
-            {summary && (
-              <details className="group bg-white p-3 rounded-lg shadow cursor-pointer">
-                <summary className="flex justify-between items-center font-medium text-gray-700">
-                  <span>Summary of Changes</span>
-                  <span className="transition-transform duration-200 group-open:rotate-90">▶</span>
-                </summary>
-                <div className="mt-3 text-gray-600 text-sm font-inter">
-                  {summary.enhanced_parts && summary.enhanced_parts.length > 0 && (
-                    <div className="mb-4">
-                      <p className="font-semibold text-green-700 mb-2">Enhanced Parts:</p>
-                      <div className="space-y-2">
-                        {summary.enhanced_parts.map((change, index) => (
-                          <div key={index} className="bg-green-50 p-3 rounded-md border-l-4 border-green-400">
-                            <div className="font-semibold text-green-800">{change.item}</div>
-                            <div className="text-gray-700 mt-1">{change.description}</div>
-                            <div className="text-sm text-green-600 italic mt-1">
-                              Why: {change.reason}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+            {/* Show warning for low match scores */}
+            {matchScore !== null && matchScore < 50 ? (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Low Match Score - Resume Enhancement Needed
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>
+                        Your resume has a low match score ({matchScore}%) for this position. This typically means:
+                      </p>
+                      <ul className="list-disc list-inside mt-2 space-y-1">
+                        <li>Your skills and experience don't align well with the job requirements</li>
+                        <li>The resume may be for a different field or role type</li>
+                        <li>Key qualifications mentioned in the job posting are missing</li>
+                      </ul>
+                      <p className="mt-3 font-medium">
+                        <strong>Recommendation:</strong> Review the job requirements and update your resume with more relevant experience, skills, or education before processing again.
+                      </p>
                     </div>
-                  )}
-                  
-                  {summary.removed_parts && summary.removed_parts.length > 0 && (
-                    <div className="mb-2">
-                      <p className="font-semibold text-red-700 mb-2">Removed Parts:</p>
-                      <div className="space-y-2">
-                        {summary.removed_parts.map((change, index) => (
-                          <div key={index} className="bg-red-50 p-3 rounded-md border-l-4 border-red-400">
-                            <div className="font-semibold text-red-800">{change.item}</div>
-                            <div className="text-gray-700 mt-1">{change.description}</div>
-                            <div className="text-sm text-red-600 italic mt-1">
-                              Why: {change.reason}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {(!summary.enhanced_parts?.length && !summary.removed_parts?.length) && (
-                    <p className="text-gray-600 italic">Primarily rephrasing and minor improvements.</p>
-                  )}
+                  </div>
                 </div>
-              </details>
-            )}
+              </div>
+            ) : (
+              // Show normal results for match scores 50% and above
+              <>
+                {summary && (
+                  <details className="group bg-white p-3 rounded-lg shadow cursor-pointer">
+                    <summary className="flex justify-between items-center font-medium text-gray-700">
+                      <span>Summary of Changes</span>
+                      <span className="transition-transform duration-200 group-open:rotate-90">▶</span>
+                    </summary>
+                    <div className="mt-3 text-gray-600 text-sm font-inter">
+                      {summary.enhanced_parts && summary.enhanced_parts.length > 0 && (
+                        <div className="mb-4">
+                          <p className="font-semibold text-green-700 mb-2">Enhanced Parts:</p>
+                          <div className="space-y-2">
+                            {summary.enhanced_parts.map((change, index) => (
+                              <div key={index} className="bg-green-50 p-3 rounded-md border-l-4 border-green-400">
+                                <div className="font-semibold text-green-800">{change.item}</div>
+                                <div className="text-gray-700 mt-1">{change.description}</div>
+                                <div className="text-sm text-green-600 italic mt-1">
+                                  Why: {change.reason}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {summary.removed_parts && summary.removed_parts.length > 0 && (
+                        <div className="mb-2">
+                          <p className="font-semibold text-red-700 mb-2">Removed Parts:</p>
+                          <div className="space-y-2">
+                            {summary.removed_parts.map((change, index) => (
+                              <div key={index} className="bg-red-50 p-3 rounded-md border-l-4 border-red-400">
+                                <div className="font-semibold text-red-800">{change.item}</div>
+                                <div className="text-gray-700 mt-1">{change.description}</div>
+                                <div className="text-sm text-red-600 italic mt-1">
+                                  Why: {change.reason}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {(!summary.enhanced_parts?.length && !summary.removed_parts?.length) && (
+                        <p className="text-gray-600 italic">Primarily rephrasing and minor improvements.</p>
+                      )}
+                    </div>
+                  </details>
+                )}
 
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => setShowSaveModal(true)}
-                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-200 font-poppins font-semibold"
-              >
-                Save Resume
-              </button>
-            </div>
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={() => setShowSaveModal(true)}
+                    className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-200 font-poppins font-semibold"
+                  >
+                    Save Resume
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
