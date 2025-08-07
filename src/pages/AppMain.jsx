@@ -186,14 +186,14 @@ const AppMain = () => {
       }
 
       const responseText = await response.text();
+      let parsedResponse;
       try {
-        const parsedResponse = parseAIOutput(responseText);
+        parsedResponse = parseAIOutput(responseText);
       } catch (parseError) {
         console.error("Error parsing AI output:", parseError);
         console.error("Raw AI response:", responseText);
         throw parseError; // Re-throw to propagate the error
       }
-      const parsedResponse = parseAIOutput(responseText);
 
       setLatexInput(parsedResponse.rewritten_resume);
       setSummary(parsedResponse.analysis.summary_of_changes);
