@@ -97,9 +97,7 @@ exports.processResumeWithGemini = functions
           }
         });
 
-        const prompt = `Enhance this resume for the job. Be EXTREMELY CONCISE.
-
-EXACT FORMAT REQUIRED:
+        const prompt = `Enhance this resume for the job. Follow this format EXACTLY.
 
 <rewritten_resume>
 [Enhanced LaTeX code]
@@ -108,35 +106,42 @@ EXACT FORMAT REQUIRED:
 <analysis>
 <summary_of_changes>
 <enhanced_parts>
-item: Summary
-description: Added key job terms
-reason: Better keyword matching
+item: Professional Summary
+description: Added Tesla-specific keywords and energy storage terms
+reason: Better match for Tesla's mission and role requirements
 ---
-item: Skills
-description: Reordered by relevance
-reason: Highlight job requirements
+item: Technical Skills
+description: Reordered skills to highlight battery and power systems
+reason: Emphasize most relevant technical competencies
+---
+item: Experience Bullets
+description: Added quantified results and stronger action verbs
+reason: Demonstrate concrete impact and achievements
 </enhanced_parts>
 <removed_parts>
-item: Old coursework
-description: Removed outdated content  
-reason: Space for relevant info
+item: General Coursework
+description: Removed non-technical coursework and outdated content
+reason: Focus space on relevant engineering experience
 </removed_parts>
 </summary_of_changes>
-<match_score>85</match_score>
-<match_score_explanation>Strong match with relevant skills but missing some requirements.</match_score_explanation>
+<match_score>78</match_score>
+<match_score_explanation>Strong engineering background with relevant experience, but lacks specific Tesla/automotive industry exposure.</match_score_explanation>
 </analysis>
 
-RULES:
-- Only enhance existing content
-- Max 6 words per description
-- Max 5 words per reason
-- Calculate honest score 0-100
+CRITICAL RULES:
+- Only enhance existing content, never fabricate
+- Every item MUST have a description AND reason
+- Keep descriptions under 10 words
+- Keep reasons under 8 words
+- Replace the example score with your real assessment
 
 RESUME:
 ${latexInput.trim()}
 
 JOB:
-${jobDescription.trim()}`;
+${jobDescription.trim()}
+
+Follow the exact format above. Do not leave description or reason fields empty.`;
 
         console.log(`Processing resume request from ${clientIP}`);
 

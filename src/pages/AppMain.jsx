@@ -125,17 +125,24 @@ const AppMain = () => {
     let enhancedParts = [];
     if (enhancedMatch) {
       enhancedParts = enhancedMatch[1].split('---').map(part => {
-        const lines = part.trim().split('\n');
-        let item = '', description = '', reason = '';
+        const trimmed = part.trim();
+        if (!trimmed) return null;
         
-        lines.forEach(line => {
-          if (line.startsWith('item:')) item = line.replace('item:', '').trim();
-          else if (line.startsWith('description:')) description = line.replace('description:', '').trim();
-          else if (line.startsWith('reason:')) reason = line.replace('reason:', '').trim();
-        });
+        // More robust parsing
+        const itemMatch = trimmed.match(/item:\s*([^\n]+)/i);
+        const descMatch = trimmed.match(/description:\s*([^\n]+)/i);
+        const reasonMatch = trimmed.match(/reason:\s*([^\n]+)/i);
         
-        return { item, description, reason };
-      }).filter(part => part.item);
+        const item = itemMatch ? itemMatch[1].trim() : '';
+        const description = descMatch ? descMatch[1].trim() : '';
+        const reason = reasonMatch ? reasonMatch[1].trim() : '';
+        
+        // Only return if we have all three fields
+        if (item && description && reason) {
+          return { item, description, reason };
+        }
+        return null;
+      }).filter(Boolean);
     }
     
     // Extract removed parts
@@ -143,18 +150,37 @@ const AppMain = () => {
     let removedParts = [];
     if (removedMatch) {
       removedParts = removedMatch[1].split('---').map(part => {
-        const lines = part.trim().split('\n');
-        let item = '', description = '', reason = '';
+        const trimmed = part.trim();
+        if (!trimmed) return null;
         
-        lines.forEach(line => {
-          if (line.startsWith('item:')) item = line.replace('item:', '').trim();
-          else if (line.startsWith('description:')) description = line.replace('description:', '').trim();
-          else if (line.startsWith('reason:')) reason = line.replace('reason:', '').trim();
-        });
+        const itemMatch = trimmed.match(/item:\s*([^\n]+)/i);
+        const descMatch = trimmed.match(/description:\s*([^\n]+)/i);
+        const reasonMatch = trimmed.match(/reason:\s*([^\n]+)/i);
         
-        return { item, description, reason };
-      }).filter(part => part.item);
+        const item = itemMatch ? itemMatch[1].trim() : '';
+        const description = descMatch ? descMatch[1].trim() : '';
+        const reason = reasonMatch ? reasonMatch[1].trim() : '';
+        
+        // Only return if we have all three fields
+        if (item && description && reason) {
+          return { item, description, reason };
+        }
+        return null;
+      }).filter(Boolean);
     }
+    
+    return {
+      rewritten_resume: result.rewritten_resume,
+      analysis: {
+        match_score: matchScore,
+        match_score_explanation: matchScoreExplanation,
+        summary_of_changes: {
+          enhanced_parts: enhancedParts,
+          removed_parts: removedParts
+        }
+      }
+    };
+  
     
     return {
       rewritten_resume: result.rewritten_resume,
