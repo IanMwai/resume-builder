@@ -136,7 +136,7 @@ exports.processResumeWithGemini = functions.https.onRequest((req, res) => {
       }
 
       const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({model: "gemini-1.5-pro"});
+      const model = genAI.getGenerativeModel({model: "gemini-1.5-flash"});
 
       const prompt = `You are an AI assistant. Your task is to analyze a LaTeX resume against a job description.
       CRITICAL: You MUST follow the custom output format below. Do NOT use JSON.
