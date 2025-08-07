@@ -103,49 +103,52 @@ exports.processResumeWithGemini = functions
         });
 
         // Create the prompt
-        const prompt = `You are a professional resume optimizer. Analyze and enhance this LaTeX resume for the given job posting.
+        const prompt = `Enhance this LaTeX resume for the job posting. Be concise and direct.
 
-CRITICAL RULES:
-1. NEVER fabricate experiences, skills, or achievements
-2. Only improve existing content with better wording and formatting
-3. If resume lacks relevant content, reflect this in a lower match score
-4. Use keywords from job posting where they naturally fit
-5. Maintain complete honesty about qualifications
+RULES:
+1. Only improve existing content - never fabricate experiences or skills
+2. Use job keywords naturally where they fit
+3. Keep descriptions brief and actionable
+4. Focus on impact and relevance
 
-OUTPUT FORMAT (follow exactly):
+FORMAT:
 
 <rewritten_resume>
-[Your enhanced LaTeX code goes here]
+[Enhanced LaTeX code]
 </rewritten_resume>
 
 <analysis>
 <summary_of_changes>
 <enhanced_parts>
-item: [Section name you enhanced]
-description: [Specific changes you made to this section]
-reason: [Why this change improves job matching]
+item: Summary Section
+description: Added job-relevant keywords and stronger action verbs
+reason: Better ATS alignment and impact
 ---
-item: [Next section name you enhanced]
-description: [Specific changes you made to this section] 
-reason: [Why this change improves job matching]
+item: Technical Skills
+description: Reorganized by job relevance, emphasized matching technologies
+reason: Highlights most relevant competencies
+---
+item: Experience Bullets
+description: Enhanced with quantified results and stronger verbs
+reason: Demonstrates concrete achievements
 </enhanced_parts>
 <removed_parts>
-item: [Section name you removed]
-description: [What was removed from this section]
-reason: [Why removing this improves the resume]
+item: Outdated Content
+description: Removed irrelevant or obsolete information
+reason: Focus on relevant qualifications
 </removed_parts>
 </summary_of_changes>
-<match_score>[Your calculated score from 0-100]</match_score>
-<match_score_explanation>[Your honest assessment of how well the resume matches the job, including strengths and gaps]</match_score_explanation>
+<match_score>[0-100 score]</match_score>
+<match_score_explanation>[Brief 1-2 sentence assessment of fit and gaps]</match_score_explanation>
 </analysis>
 
-RESUME TO ENHANCE:
+RESUME:
 ${latexInput.trim()}
 
-JOB REQUIREMENTS:
+JOB:
 ${jobDescription.trim()}
 
-Remember: Enhance truthfully, never invent content. Every item must have complete description and reason fields.`;
+Keep descriptions under 12 words. Be specific and direct.`;
 
         console.log(`Processing resume request from ${clientIP} - Resume: ${latexInput.length} chars, Job: ${jobDescription.length} chars`);
 

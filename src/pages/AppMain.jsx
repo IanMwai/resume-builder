@@ -96,7 +96,7 @@ const AppMain = () => {
     }
   };
 
-  // UPDATED PARSING FUNCTION
+  // IMPROVED PARSING FUNCTION
   function parseAIOutput(text) {
     const result = {};
     const sections = ["rewritten_resume", "analysis"];
@@ -141,17 +141,32 @@ const AppMain = () => {
           const parts = match[1].trim().split('---').map(part => {
             const trimmedPart = part.trim();
             
-            // Improved parsing for multiline content
-            const itemMatch = trimmedPart.match(/^item:\s*(.+?)(?=\ndescription:|$)/s);
-            const descriptionMatch = trimmedPart.match(/description:\s*(.+?)(?=\nreason:|$)/s);
-            const reasonMatch = trimmedPart.match(/reason:\s*(.+?)$/s);
-
-            const item = itemMatch ? itemMatch[1].trim() : '';
-            const description = descriptionMatch ? descriptionMatch[1].trim() : '';
-            const reason = reasonMatch ? reasonMatch[1].trim() : '';
+            // More precise parsing to avoid duplication
+            const lines = trimmedPart.split('\n');
+            let item = '';
+            let description = '';
+            let reason = '';
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (line.startsWith('item:')) {
+                item = line.replace('item:', '').trim();
+              } else if (line.startsWith('description:')) {
+                // Only capture until next field or end
+                let desc = line.replace('description:', '').trim();
+                for (let j = i + 1; j < lines.length; j++) {
+                  if (lines[j].trim().startsWith('reason:')) break;
+                  desc += ' ' + lines[j].trim();
+                }
+                description = desc.trim();
+              } else if (line.startsWith('reason:')) {
+                reason = line.replace('reason:', '').trim();
+                break; // Stop here to avoid capturing more
+              }
+            }
             
             return { item, description, reason };
-          }).filter(p => p.item && (p.description || p.reason));
+          }).filter(p => p.item && p.description && p.reason);
           
           summary[type] = parts;
         } else {
@@ -369,40 +384,50 @@ const AppMain = () => {
                 </summary>
                 <div className="mt-3 text-gray-600 text-sm font-inter">
                   {summary.enhanced_parts && summary.enhanced_parts.length > 0 ? (
-                    <div className="mb-2">
-                      <p className="font-semibold text-green-700">Enhanced/Edited Parts:</p>
-                      <ul className="list-disc list-inside ml-4">
+                    <div className="mb-4">
+                      <p className="font-semibold text-green-700 mb-2">Enhanced/Edited Parts:</p>
+                      <div className="space-y-3">
                         {summary.enhanced_parts.map((change, index) => (
-                          <li key={index}>
-                            <span className="font-medium">{change.item}</span>: {change.description} (Reason: {change.reason})
-                          </li>
+                          <div key={index} className="bg-green-50 p-3 rounded-md border-l-4 border-green-400">
+                            <div className="font-semibold text-green-800 mb-1">{change.item}</div>
+                            <div className="text-gray-700 mb-2">{change.description}</div>
+                            <div className="text-sm text-green-600 italic">
+                              <span className="font-medium">Why:</span> {change.reason}
+                            </div>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   ) : (
-                    <div className="mb-2">
+                    <div className="mb-4">
                       <p className="font-semibold text-green-700">No parts enhanced/edited.</p>
                     </div>
                   )}
+                  
                   {summary.removed_parts && summary.removed_parts.length > 0 ? (
                     <div className="mb-2">
-                      <p className="font-semibold text-red-700">Removed Parts:</p>
-                      <ul className="list-disc list-inside ml-4">
+                      <p className="font-semibold text-red-700 mb-2">Removed Parts:</p>
+                      <div className="space-y-3">
                         {summary.removed_parts.map((change, index) => (
-                          <li key={index}>
-                            <span className="font-medium">{change.item}</span>: {change.description} (Reason: {change.reason})
-                          </li>
+                          <div key={index} className="bg-red-50 p-3 rounded-md border-l-4 border-red-400">
+                            <div className="font-semibold text-red-800 mb-1">{change.item}</div>
+                            <div className="text-gray-700 mb-2">{change.description}</div>
+                            <div className="text-sm text-red-600 italic">
+                              <span className="font-medium">Why:</span> {change.reason}
+                            </div>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   ) : (
                     <div className="mb-2">
                       <p className="font-semibold text-red-700">No parts removed.</p>
                     </div>
                   )}
+                  
                   {(!summary.enhanced_parts || summary.enhanced_parts.length === 0) &&
                    (!summary.removed_parts || summary.removed_parts.length === 0) && (
-                    <p>No significant structural changes detected, primarily rephrasing.</p>
+                    <p className="text-gray-600 italic">No significant structural changes detected, primarily rephrasing.</p>
                   )}
                 </div>
               </details>
