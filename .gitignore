@@ -5,4 +5,4 @@
 .env
 
 # Build directory
-/build
+/build.DS_Store
