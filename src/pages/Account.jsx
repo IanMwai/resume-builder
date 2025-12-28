@@ -59,49 +59,63 @@ const Account = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6">Account Information</h2>
-      {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-      {message && <p className="text-green-500 text-center mb-4">{message}</p>}
-      {userData && (
-        <form onSubmit={handleUpdateAccount}>
-          <div className="mb-4">
-            <label className="block text-gray-700">First Name</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border rounded-lg"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              required
-            />
+    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-2xl mx-auto">
+      <div className="border-b border-gray-100 pb-4 mb-8">
+        <h2 className="text-3xl font-poppins font-bold text-gray-900">Account Settings</h2>
+        <p className="text-gray-500 mt-1">Update your personal information</p>
+      </div>
+
+      {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r-md">{error}</div>}
+      {message && <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-md">{message}</div>}
+      
+      {userData ? (
+        <form onSubmit={handleUpdateAccount} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-light focus:border-crimson-light transition-colors"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-light focus:border-crimson-light transition-colors"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Last Name</label>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Name <span className="text-gray-400 font-normal">(Optional)</span></label>
             <input
               type="text"
-              className="w-full px-3 py-2 border rounded-lg"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Preferred Name (optional)</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-light focus:border-crimson-light transition-colors"
               value={preferredName}
               onChange={(e) => setPreferredName(e.target.value)}
             />
           </div>
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
-          >
-            Update Account
-          </button>
-          {message && <p className="text-green-500 mt-4">{message}</p>}
+
+          <div className="pt-4">
+            <button
+              type="submit"
+              className="w-full bg-crimson-light text-white py-3 px-6 rounded-lg hover:bg-crimson-dark transition duration-200 font-poppins font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+            >
+              Save Changes
+            </button>
+          </div>
         </form>
+      ) : (
+        <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crimson-light"></div>
+        </div>
       )}
     </div>
   );
