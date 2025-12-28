@@ -296,29 +296,16 @@ const AppMain = () => {
     }
 
     if (!resumeTitle.trim()) {
-      setError('Resume title cannot be empty.'); // This error might be hidden behind the modal
-      // Better to show an alert or set a specific modal error state if we want it inside the modal
-      // For now, let's use a simple alert for validation inside the modal interaction, 
-      // or we can add a specific error state for the modal.
-      // Let's reuse the main error state but ensure the modal doesn't block it or adds its own.
-      // Actually, the main error is displayed in the main flow. If the modal is open, the user won't see the main error div.
-      // I should add a local error state for the modal.
+      setError('Resume title cannot be empty.');
       return; 
     }
     
-    // We'll use a local variable or a different approach if we want to show error inside modal.
-    // For this quick fix, I will assume the `error` state is visible or I will modify the modal to show `error` state.
-    // However, the `error` state in JSX is outside the modal.
-    
-    // Let's try to fetch check first.
     try {
       const resumesRef = collection(db, 'users', user.uid, 'resumes');
       const q = query(resumesRef, where('title', '==', resumeTitle.trim()));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        // Set error. Since the modal is open, we need to make sure the user sees this.
-        // I will update the modal JSX to display this error.
         setError('A resume with this title already exists. Please choose a different name.');
         return;
       }
@@ -348,7 +335,6 @@ const AppMain = () => {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <span className="text-xl">📄</span>
                 <h3 className="text-lg font-poppins font-semibold text-gray-900">Resume LaTeX</h3>
               </div>
               <div className="flex space-x-3">
@@ -377,7 +363,6 @@ const AppMain = () => {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                <div className="flex items-center space-x-2">
-                <span className="text-xl">💼</span>
                 <h3 className="text-lg font-poppins font-semibold text-gray-900">Target Job Description</h3>
               </div>
               <button onClick={() => setJobDescription('')} className="text-sm font-medium text-gray-400 hover:text-red-500 transition-colors">
@@ -513,7 +498,8 @@ const AppMain = () => {
                   <details className="group bg-white p-3 rounded-lg shadow cursor-pointer">
                     <summary className="flex justify-between items-center font-medium text-gray-700">
                       <span>Summary of Changes</span>
-                      <span className="transition-transform duration-200 group-open:rotate-90">▶</span>
+                      <span className="text-sm text-crimson-light group-open:hidden">Show Details</span>
+                      <span className="text-sm text-crimson-light hidden group-open:inline">Hide Details</span>
                     </summary>
                     <div className="mt-3 text-gray-600 text-sm font-inter">
                       {summary.enhanced_parts && summary.enhanced_parts.length > 0 && (
@@ -588,7 +574,7 @@ const AppMain = () => {
                           value={resumeTitle}
                           onChange={(e) => {
                             setResumeTitle(e.target.value);
-                            setError(''); // Clear error when typing
+                            setError('');
                           }}
                         />
                         {error && (

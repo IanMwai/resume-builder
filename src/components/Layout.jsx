@@ -50,12 +50,13 @@ const Layout = ({ children }) => {
       <Navbar />
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {user && userData && (
-          <div className="py-8 mt-4 mb-2">
-            <h1 className="text-3xl font-poppins font-bold text-gray-900">
-              Welcome back, {(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}! 👋
+          <div className="py-8 mt-4 mb-6 border-b border-gray-200">
+            <h1 className="text-3xl font-poppins font-bold text-gray-900 tracking-tight">
+              Welcome back, {(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}
             </h1>
-            <p className="mt-2 text-lg text-gray-600">
+            <p className="mt-2 text-lg text-gray-500 font-inter">
               {greeting}
+              
             </p>
           </div>
         )}
