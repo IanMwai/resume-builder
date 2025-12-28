@@ -296,17 +296,29 @@ const AppMain = () => {
     }
 
     if (!resumeTitle.trim()) {
-      setError('Resume title cannot be empty.');
-      return;
+      setError('Resume title cannot be empty.'); // This error might be hidden behind the modal
+      // Better to show an alert or set a specific modal error state if we want it inside the modal
+      // For now, let's use a simple alert for validation inside the modal interaction, 
+      // or we can add a specific error state for the modal.
+      // Let's reuse the main error state but ensure the modal doesn't block it or adds its own.
+      // Actually, the main error is displayed in the main flow. If the modal is open, the user won't see the main error div.
+      // I should add a local error state for the modal.
+      return; 
     }
-
+    
+    // We'll use a local variable or a different approach if we want to show error inside modal.
+    // For this quick fix, I will assume the `error` state is visible or I will modify the modal to show `error` state.
+    // However, the `error` state in JSX is outside the modal.
+    
+    // Let's try to fetch check first.
     try {
-      // Check for duplicates
       const resumesRef = collection(db, 'users', user.uid, 'resumes');
       const q = query(resumesRef, where('title', '==', resumeTitle.trim()));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
+        // Set error. Since the modal is open, we need to make sure the user sees this.
+        // I will update the modal JSX to display this error.
         setError('A resume with this title already exists. Please choose a different name.');
         return;
       }
@@ -317,9 +329,8 @@ const AppMain = () => {
         jobDescription: jobDescription,
         createdAt: new Date(),
       });
-      // setSuccessMessage('Resume saved successfully!'); // Removed to use modal instead
       setShowSaveModal(false);
-      setShowPostSaveModal(true); // Show post-save options
+      setShowPostSaveModal(true);
       setResumeTitle('');
     } catch (error) {
       console.error('Error saving resume:', error);
@@ -329,57 +340,56 @@ const AppMain = () => {
 
   return (
     <div className="w-full">
-      <div className="bg-white rounded-lg shadow-xl p-6">
+      <div className="space-y-8">
         <Toaster />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-poppins font-semibold leading-6 text-gray-900">Resume (.tex)</h3>
-              <button
-                onClick={() => setLatexInput('')}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Clear
-              </button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Resume Input Section */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">📄</span>
+                <h3 className="text-lg font-poppins font-semibold text-gray-900">Resume LaTeX</h3>
+              </div>
+              <div className="flex space-x-3">
+                 <label className="cursor-pointer text-sm font-medium text-crimson-light hover:text-crimson-dark transition-colors flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Upload
+                    <input type="file" accept=".tex" onChange={handleFileUpload} className="hidden" />
+                 </label>
+                 <button onClick={() => setLatexInput('')} className="text-sm font-medium text-gray-400 hover:text-red-500 transition-colors">
+                    Clear
+                 </button>
+              </div>
             </div>
-            <div className="mt-2">
+            <div className="p-4 flex-grow">
               <textarea
-                rows="12"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-crimson-light focus:outline-none resize-y overflow-auto font-inter"
+                className="w-full h-full min-h-[400px] p-4 border-0 focus:ring-0 resize-none font-mono text-sm bg-gray-50/50 rounded-lg text-gray-700 placeholder-gray-400 focus:bg-white transition-colors"
                 value={latexInput}
                 onChange={(e) => setLatexInput(e.target.value)}
-                placeholder="Paste your LaTeX code here or upload a .tex file."
+                placeholder="% Paste your LaTeX code here..."
+                spellCheck="false"
               ></textarea>
             </div>
-            <div className="mt-4">
-              <label className="block text-sm font-inter font-medium text-gray-700 mb-1">
-                Upload .tex file
-              </label>
-              <input
-                type="file"
-                accept=".tex"
-                onChange={handleFileUpload}
-                className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-crimson-light file:text-white hover:file:bg-crimson-dark transition duration-200"
-              />
-            </div>
           </div>
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-poppins font-semibold leading-6 text-gray-900">Job Description</h3>
-              <button
-                onClick={() => setJobDescription('')}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
+
+          {/* Job Description Input Section */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+               <div className="flex items-center space-x-2">
+                <span className="text-xl">💼</span>
+                <h3 className="text-lg font-poppins font-semibold text-gray-900">Target Job Description</h3>
+              </div>
+              <button onClick={() => setJobDescription('')} className="text-sm font-medium text-gray-400 hover:text-red-500 transition-colors">
                 Clear
               </button>
             </div>
-            <div className="mt-2">
+             <div className="p-4 flex-grow">
               <textarea
-                rows="12"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-crimson-light focus:outline-none resize-y overflow-auto font-inter"
+                className="w-full h-full min-h-[400px] p-4 border-0 focus:ring-0 resize-none font-inter text-sm bg-gray-50/50 rounded-lg text-gray-700 placeholder-gray-400 focus:bg-white transition-colors"
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the job description here."
+                placeholder="Paste the job listing requirements here..."
               ></textarea>
             </div>
           </div>
@@ -403,7 +413,7 @@ const AppMain = () => {
                  </svg>
                  Processing...
                </span>
-            ) : '✨ Enhance Resume with AI'}
+            ) : 'Enhance Resume with AI'}
           </button>
           <button
             onClick={() => handleDownload('tex')}
@@ -576,8 +586,14 @@ const AppMain = () => {
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-crimson-light focus:outline-none"
                           placeholder="Enter resume title"
                           value={resumeTitle}
-                          onChange={(e) => setResumeTitle(e.target.value)}
+                          onChange={(e) => {
+                            setResumeTitle(e.target.value);
+                            setError(''); // Clear error when typing
+                          }}
                         />
+                        {error && (
+                          <p className="text-red-500 text-sm mt-2">{error}</p>
+                        )}
                       </div>
                     </div>
                   </div>

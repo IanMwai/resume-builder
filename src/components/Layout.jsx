@@ -30,18 +30,36 @@ const Layout = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  const [greeting, setGreeting] = useState('');
+
+  useEffect(() => {
+    const messages = [
+      "Ready to land your dream job?",
+      "Let's make your resume shine today!",
+      "Optimizing your career path, one line at a time.",
+      "Time to stand out from the crowd.",
+      "Your next opportunity is waiting.",
+      "Let's tailor your resume for success.",
+      "Building a better future, starting now."
+    ];
+    setGreeting(messages[Math.floor(Math.random() * messages.length)]);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-200 font-sans text-neutral-text-primary">
+    <div className="min-h-screen bg-neutral-bg font-sans text-neutral-text-primary">
       <Navbar />
-      <div className="w-screen mx-auto px-4 md:px-8 lg:px-12">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {user && userData && (
-          <div className="py-4 mt-4 bg-rose-50 rounded-lg shadow-md">
-            <h2 className="text-lg font-poppins text-gray-800 text-center">
-              {`${(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}! Haven’t landed the job yet? Let’s fix that; your resume glow-up starts now!`}
-            </h2>
+          <div className="py-8 mt-4 mb-2">
+            <h1 className="text-3xl font-poppins font-bold text-gray-900">
+              Welcome back, {(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}! 👋
+            </h1>
+            <p className="mt-2 text-lg text-gray-600">
+              {greeting}
+            </p>
           </div>
         )}
-        <main className="py-6">
+        <main className="pb-12">
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
               return React.cloneElement(child, { user, userData });
