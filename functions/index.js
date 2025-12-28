@@ -97,51 +97,62 @@ exports.processResumeWithGemini = functions
           }
         });
 
-        const prompt = `Enhance this resume for the job. Follow this format EXACTLY.
+        const prompt = `You are an expert Technical Recruiter and Resume Writer with 15+ years of experience. Your goal is to rewrite a candidate's resume to maximize their chances of getting an interview for the specific job provided.
+
+JOB DESCRIPTION:
+${jobDescription.trim()}
+
+CANDIDATE RESUME (LaTeX):
+${latexInput.trim()}
+
+### INSTRUCTIONS:
+1. **Analyze Strategy:** First, identify the hard skills, soft skills, and core competencies required by the job description.
+2. **Rewrite Content (Deep Optimization):**
+   - **Structure:** Keep the exact same LaTeX template and structure. Only modify the text content.
+   - **Professional Summary:** Rewrite the summary to be a powerful elevator pitch that immediately aligns the candidate with the specific role.
+   - **Bullet Points (STAR Method):** Rewrite experience bullet points using the STAR method (Situation, Task, Action, Result).
+   - **Keywords:** Naturally integrate specific keywords from the job description into the skills and experience sections to pass ATS (Applicant Tracking Systems).
+   - **Impact:** Change passive language to active, results-oriented language (e.g., "Responsible for..." -> "Spearheaded...").
+   - **Quantification:** If exact numbers are missing, frame the bullets to highlight impact. *Do not invent numbers*, but you can use placeholders like "[increased efficiency by X%]" if the context strongly implies a missing metric.
+3. **Filtering:** Remove irrelevant hobbies or outdated experience that doesn't add value to this specific application.
+
+### OUTPUT FORMAT:
+You must strictly follow this XML-like format. Do not add any markdown blocks (like \`\`\`xml) around the tags.
 
 <rewritten_resume>
-[Enhanced LaTeX code]
+[Insert the FULL, valid, compilable LaTeX code here. Do not truncate.]
 </rewritten_resume>
 
 <analysis>
+<match_score>[0-100]</match_score>
+<match_score_explanation>[Concise explanation of the score and the main gap closed]</match_score_explanation>
 <summary_of_changes>
 <enhanced_parts>
-item: Professional Summary
-description: Added Tesla-specific keywords and energy storage terms
-reason: Better match for Tesla's mission and role requirements
+item: [Brief Title of Change]
+description: [What specifically was improved]
+reason: [Strategic reason relating to the Job Description]
 ---
-item: Technical Skills
-description: Reordered skills to highlight battery and power systems
-reason: Emphasize most relevant technical competencies
+item: [Next Change]
+description: [Description]
+reason: [Reason]
 ---
-item: Experience Bullets
-description: Added quantified results and stronger action verbs
-reason: Demonstrate concrete impact and achievements
+[Include 3-5 major improvements]
 </enhanced_parts>
 <removed_parts>
-item: General Coursework
-description: Removed non-technical coursework and outdated content
-reason: Focus space on relevant engineering experience
+item: [Title of Removal]
+description: [What was removed]
+reason: [Why it was distraction or irrelevant]
+---
+[Include only if applicable]
 </removed_parts>
 </summary_of_changes>
-<match_score>78</match_score>
-<match_score_explanation>Strong engineering background with relevant experience, but lacks specific Tesla/automotive industry exposure.</match_score_explanation>
 </analysis>
 
-CRITICAL RULES:
-- Only enhance existing content, never fabricate
-- Every item MUST have a description AND reason
-- Keep descriptions under 10 words
-- Keep reasons under 8 words
-- Replace the example score with your real assessment
-
-RESUME:
-${latexInput.trim()}
-
-JOB:
-${jobDescription.trim()}
-
-Follow the exact format above. Do not leave description or reason fields empty.`;
+### CRITICAL RULES:
+- **NO HALLUCINATIONS:** Do not invent companies, degrees, or job titles. Only enhance existing content.
+- **LaTeX INTEGRITY:** The code in <rewritten_resume> MUST be compilable. Do not break braces {} or commands.
+- **TONE:** Professional, confident, and concise.
+`;
 
         console.log(`Processing resume request from ${clientIP}`);
 
