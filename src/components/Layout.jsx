@@ -46,21 +46,20 @@ const Layout = ({ children }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-bg font-sans text-neutral-text-primary">
+    <div className="min-h-screen bg-[#F8F9FA] font-sans text-slate-900">
       <Navbar />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1200px] mx-auto px-6">
         {user && userData && (
-          <div className="py-8 mt-4 mb-6 border-b border-gray-200">
-            <h1 className="text-3xl font-poppins font-bold text-gray-900 tracking-tight">
+          <div className="py-10 mt-4 mb-2">
+            <h1 className="text-4xl font-poppins font-bold text-slate-900 tracking-tight">
               Welcome back, {(userData.preferredName || userData.firstName).charAt(0).toUpperCase() + (userData.preferredName || userData.firstName).slice(1)}
             </h1>
-            <p className="mt-2 text-lg text-gray-500 font-inter">
+            <p className="mt-3 text-lg text-slate-500 font-inter max-w-2xl leading-relaxed">
               {greeting}
-              
             </p>
           </div>
         )}
-        <main className="pb-12">
+        <main className="pb-20">
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
               return React.cloneElement(child, { user, userData });
